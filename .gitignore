@@ -1,0 +1,10 @@
+**/target
+*.cap
+*.iml
+*~
+/.idea
+/.mvn/wrapper/maven-wrapper.jar
+/applet/*.cap
+/applet/ant-javacard.jar
+pom.xml.versionsBackup
+target

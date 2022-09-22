@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.github.martinpaljak</groupId>
+        <artifactId>fido2-toolbox</artifactId>
+        <version>22.01.05-SNAPSHOT</version>
+    </parent>
+    <artifactId>ctap2-common</artifactId>
+    <name>FIDO2/U2F/CTAP2 common</name>
+    <description>FIDO2/U2F/CTAP2 common</description>
+    <dependencies>
+        <dependency>
+            <groupId>com.github.martinpaljak</groupId>
+            <artifactId>apdu4j-core</artifactId>
+            <version>2020r3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-cbor</artifactId>
+            <version>2.13.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk18on</artifactId>
+        </dependency>
+    </dependencies>
+</project>

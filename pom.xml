@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.github.martinpaljak</groupId>
+        <artifactId>metacard</artifactId>
+        <version>22.09.09</version>
+    </parent>
+    <packaging>pom</packaging>
+    <artifactId>fido2-toolbox</artifactId>
+    <version>22.01.05-SNAPSHOT</version>
+    <name>FIDO2/U2F/CTAP2 toolbox for Java/JavaCard</name>
+    <repositories>
+        <repository>
+            <id>javacard-pro</id>
+            <url>https://javacard.pro/maven/</url>
+        </repository>
+    </repositories>
+    <modules>
+        <module>common</module>
+        <module>transports</module>
+        <module>tool</module>
+    </modules>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <configuration>
+                    <excludeFilterFile>spotbugs.xml</excludeFilterFile>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.klinec</groupId>
+                <artifactId>jcardsim</artifactId>
+                <version>3.0.5.9</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcpkix-jdk18on</artifactId>
+                <version>1.71</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+</project>

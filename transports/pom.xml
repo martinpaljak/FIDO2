@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.github.martinpaljak</groupId>
+        <artifactId>fido2-toolbox</artifactId>
+        <version>22.01.05-SNAPSHOT</version>
+    </parent>
+    <artifactId>ctap2-transports</artifactId>
+    <name>CTAP transports</name>
+    <dependencies>
+        <dependency>
+            <groupId>com.github.martinpaljak</groupId>
+            <artifactId>apdu4j-pcsc</artifactId>
+            <version>22.09.07</version>
+        </dependency>
+        <dependency>
+            <groupId>org.hid4java</groupId>
+            <artifactId>hid4java</artifactId>
+            <version>0.7.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.martinpaljak</groupId>
+            <artifactId>ctap2-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+    </dependencies>
+</project>

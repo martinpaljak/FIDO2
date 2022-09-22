@@ -1,0 +1,39 @@
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+name: CI check
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build and deploy
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3.0.2
+        with:
+          submodules: true
+      - name: Set SSH key
+        uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+      - name: Add known host key
+        run: ssh-keyscan javacard.pro >> ~/.ssh/known_hosts
+      - name: Cache local Maven repository
+        uses: actions/cache@v3.0.8
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Setup java
+        uses: actions/setup-java@v3.5.0
+        with:
+          java-version: 11
+          distribution: temurin
+      - name: Compile and verify
+        run: ./mvnw -U -B -T1C verify
+      - name: Deploy snapshot
+        run: ./mvnw -B deploy
