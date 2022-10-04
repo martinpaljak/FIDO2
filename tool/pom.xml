@@ -41,13 +41,13 @@
                 <artifactId>maven-shade-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>ctap2</id>
+                        <id>fido-jar</id>
                         <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <finalName>ctap2</finalName>
+                            <finalName>fido</finalName>
                             <!--minimizeJar>true</minimizeJar-->
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <transformers>
@@ -95,7 +95,7 @@
                         <configuration>
                             <headerType>console</headerType>
                             <outfile>target/fido.exe</outfile>
-                            <jar>target/ctap2.jar</jar>
+                            <jar>target/fido.jar</jar>
                             <errTitle>FIDO</errTitle>
                             <manifest>src/main/resources/fido.exe.manifest</manifest>
                             <classPath>
@@ -112,13 +112,13 @@
                                     ${windowsVersion.majorVersion}.${windowsVersion.minorVersion}.${windowsVersion.incrementalVersion}.${windowsVersion.buildNumber}
                                 </fileVersion>
                                 <txtFileVersion>${project.version}</txtFileVersion>
-                                <fileDescription>fido tool</fileDescription>
+                                <fileDescription>FIDO tool</fileDescription>
                                 <copyright>(C) 2021 - 2022 Martin Paljak and contributors (LGPL+MIT)</copyright>
                                 <productVersion>
                                     ${windowsVersion.majorVersion}.${windowsVersion.minorVersion}.${windowsVersion.incrementalVersion}.${windowsVersion.buildNumber}
                                 </productVersion>
                                 <txtProductVersion>${project.version}</txtProductVersion>
-                                <productName>FIDO</productName>
+                                <productName>FIDO tool</productName>
                                 <internalName>fido</internalName>
                                 <originalFilename>fido.exe</originalFilename>
                             </versionInfo>
