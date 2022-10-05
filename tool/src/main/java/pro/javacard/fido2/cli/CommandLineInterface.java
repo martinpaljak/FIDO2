@@ -21,7 +21,6 @@ abstract class CommandLineInterface {
     protected static OptionSpec<Void> OPT_VERBOSE = parser.acceptsAll(Arrays.asList("v", "verbose"), "Show CBOR messages");
 
     protected static OptionSpec<Void> OPT_LIST_CREDENTIALS = parser.acceptsAll(Arrays.asList("l", "list-credentials"), "List credentials (pre)");
-    protected static OptionSpec<Void> OPT_LIST_FINGERPRINTS = parser.acceptsAll(Arrays.asList("F", "list-fingerprints"), "List fingerprints (pre, WIP)");
     protected static OptionSpec<String> OPT_DELETE = parser.acceptsAll(Arrays.asList("D", "delete"), "Delete credential (pre)").withRequiredArg().describedAs("user@domain|credential");
 
     protected static OptionSpec<Void> OPT_WINK = parser.acceptsAll(Arrays.asList("W", "wink"), "Wink ;)");
@@ -56,7 +55,6 @@ abstract class CommandLineInterface {
 
     // X-FIDO commands
     protected static OptionSpec<String> OPT_X_AUTH = parser.acceptsAll(Arrays.asList("x-auth"), "Use admin secret (X-FIDO)").withRequiredArg().describedAs("secret");
-
     protected static OptionSpec<Void> OPT_X_INFO = parser.acceptsAll(Arrays.asList("x-info"), "Show token info (X-FIDO)");
 
     protected static OptionSpec<String> OPT_X_CREATE = parser.acceptsAll(Arrays.asList("x-create"), "Create something (X-FIDO)").withRequiredArg().describedAs("type");
@@ -64,10 +62,6 @@ abstract class CommandLineInterface {
     protected static OptionSpec<String> OPT_X_UPDATE = parser.acceptsAll(Arrays.asList("x-update"), "Update something (X-FIDO)").withRequiredArg().describedAs("type");
     protected static OptionSpec<String> OPT_X_DELETE = parser.acceptsAll(Arrays.asList("x-delete"), "Delete something (X-FIDO)").withRequiredArg().describedAs("type");
     protected static OptionSpec<String> OPT_X_LIST = parser.acceptsAll(Arrays.asList("x-list"), "List things (X-FIDO)").withRequiredArg().describedAs("type");
-
-    // Options to disable/block things
-    protected static OptionSpec<Boolean> OPT_X_DISABLED = parser.acceptsAll(Arrays.asList("disabled"), "Disable it (X-FIDO)").withRequiredArg().describedAs("true/false").ofType(Boolean.class);
-    protected static OptionSpec<Boolean> OPT_X_BLOCKED = parser.acceptsAll(Arrays.asList("blocked"), "Block it (X-FIDO)").withRequiredArg().describedAs("true/false").ofType(Boolean.class);
 
     protected static <V> Optional<V> optional(OptionSet args, OptionSpec<V> v) {
         return args.hasArgument(v) ? Optional.ofNullable(args.valueOf(v)) : Optional.empty();
@@ -83,13 +77,15 @@ abstract class CommandLineInterface {
         } catch (OptionException e) {
             parser.printHelpOn(System.err);
             System.err.println();
+            System.err.println("More information: https://github.com/martinpaljak/FIDO2");
+            System.err.println();
             if (e.getCause() != null) {
                 System.err.println(e.getMessage() + ": " + e.getCause().getMessage());
             } else {
                 System.err.println(e.getMessage());
             }
             exitWith(1);
-            throw new RuntimeException("Never reached but makes spotbugs happy."); // FIXME
+            throw new IllegalStateException("XXX: never reached but makes spotbugs happy."); // XXX
         }
 
         if (args.nonOptionArguments().size() > 0) {
@@ -101,6 +97,9 @@ abstract class CommandLineInterface {
 
         if (args.has(OPT_HELP) || args.specs().size() == 0) {
             parser.printHelpOn(System.out);
+            System.err.println();
+            System.err.println("More information: https://github.com/martinpaljak/FIDO2");
+
             if (Platform.isWindows()) {
                 System.out.println();
                 System.out.println("NB! This tool must be run as an Administrator on Windows!");
@@ -123,7 +122,7 @@ abstract class CommandLineInterface {
     }
 
     static boolean requiresPIN(OptionSet options) {
-        return options.has(OPT_CHANGE_PIN) || options.has(OPT_LIST_CREDENTIALS) || options.has(OPT_LIST_FINGERPRINTS) || options.has(OPT_DELETE) || options.has(OPT_REGISTER);
+        return options.has(OPT_CHANGE_PIN) || options.has(OPT_LIST_CREDENTIALS) ||  options.has(OPT_DELETE) || options.has(OPT_REGISTER);
     }
 
 
