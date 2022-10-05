@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.github.martinpaljak</groupId>
         <artifactId>metacard</artifactId>
-        <version>22.09.09</version>
+        <version>22.10.05</version>
     </parent>
     <packaging>pom</packaging>
     <artifactId>fido2-toolbox</artifactId>
@@ -24,6 +24,34 @@
     </modules>
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.10.1</version>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <configuration>
+                            <!-- compile everything to ensure module-info contains right entries -->
+                            <release>17</release>
+                            <annotationProcessorPaths combine.children="append">
+                                <path>
+                                    <groupId>com.google.auto.service</groupId>
+                                    <artifactId>auto-service</artifactId>
+                                    <version>1.0.1</version>
+                                </path>
+                            </annotationProcessorPaths>
+                            <compilerArgs combine.children="append">
+                                <arg>-Werror</arg>
+                                <arg>-Xlint:all</arg>
+                                <!-- The funky case with autoservice -->
+                                <arg>-Xlint:-processing</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>

@@ -87,7 +87,6 @@ public class MakeCredentialCommand {
     }
 
     // Build the CBOR structure
-    @SuppressWarnings("deprecation")
     public byte[] build() {
         if (clientDataHash == null || origin == null || userId == null || algorithms.size() == 0)
             throw new IllegalStateException("Mandatory parameter missing");
@@ -132,7 +131,7 @@ public class MakeCredentialCommand {
             generator.writeEndObject();
 
             generator.writeFieldId(MakeCredentialCommandParameter.pubKeyCredParams.value());
-            generator.writeStartArray(algorithms.size());
+            generator.writeStartArray(null, algorithms.size());
             for (int alg : algorithms) {
                 generator.writeStartObject(2);
                 generator.writeFieldName("alg");
@@ -145,7 +144,7 @@ public class MakeCredentialCommand {
 
             if (excludeList.size() > 0) {
                 generator.writeFieldId(MakeCredentialCommandParameter.excludeList.value());
-                generator.writeStartArray(excludeList.size());
+                generator.writeStartArray(null, excludeList.size());
                 for (byte[] credential : excludeList) {
                     generator.writeStartObject(2);
                     generator.writeFieldName("type");

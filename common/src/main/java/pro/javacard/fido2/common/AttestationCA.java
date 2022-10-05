@@ -54,8 +54,8 @@ public class AttestationCA {
 
 
     X509Certificate makeRootCertificate() throws Exception {
-        ECPrivateKey privateKey = CryptoUtils.private2privkey(rootPrivate);
-        ECPublicKey publicKey = CryptoUtils.uncompressed2pubkey(rootPublic);
+        ECPrivateKey privateKey = P256.private2privkey(rootPrivate);
+        ECPublicKey publicKey = P256.uncompressed2pubkey(rootPublic);
 
         // start data
         Date startDate = Date.from(LocalDate.of(2022, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
@@ -78,7 +78,7 @@ public class AttestationCA {
 
 
     X509Certificate makeAttestationCertificate(ECPublicKey attestationPublicKey, byte[] aaguid) throws Exception {
-        ECPrivateKey privateKey = CryptoUtils.private2privkey(rootPrivate);
+        ECPrivateKey privateKey = P256.private2privkey(rootPrivate);
 
         // Serial == 1
         BigInteger certSerialNumber = BigInteger.ONE;
@@ -105,7 +105,7 @@ public class AttestationCA {
 
     //@Test
     public void makeKey() {
-        KeyPair keyPair = CryptoUtils.ephemeral();
+        KeyPair keyPair = P256.ephemeral();
 
         System.out.println(Hex.toHexString(((ECPrivateKey) keyPair.getPrivate()).getS().toByteArray()));
         System.out.println(Hex.toHexString(((ECPublicKey) keyPair.getPublic()).getW().getAffineX().toByteArray()));
@@ -117,7 +117,7 @@ public class AttestationCA {
         X509Certificate rootCert = makeRootCertificate();
         System.out.println(Hex.toHexString(rootCert.getEncoded()));
 
-        KeyPair keyPair = CryptoUtils.ephemeral();
+        KeyPair keyPair = P256.ephemeral();
         System.out.println("Attestation key: " + Hex.toHexString(((ECPrivateKey) keyPair.getPrivate()).getS().toByteArray()));
         System.out.println("Attestation cert: " + Hex.toHexString(makeAttestationCertificate((ECPublicKey) keyPair.getPublic(), new byte[16]).getEncoded()));
     }

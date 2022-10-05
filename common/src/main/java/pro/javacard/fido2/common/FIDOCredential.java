@@ -1,5 +1,6 @@
 package pro.javacard.fido2.common;
 
+import java.security.PublicKey;
 import java.security.interfaces.ECPublicKey;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,7 +19,7 @@ public class FIDOCredential {
         return credentialID.clone();
     }
 
-    public ECPublicKey getPublicKey() {
+    public COSEPublicKey getPublicKey() {
         return publicKey;
     }
 
@@ -32,9 +33,9 @@ public class FIDOCredential {
 
     final byte[] credentialID;
 
-    final ECPublicKey publicKey;
+    final COSEPublicKey publicKey;
 
-    public FIDOCredential(String username, byte[] userId, String rpId, byte[] rpIdHash, byte[] credentialID, ECPublicKey publicKey, Map<String, Object> options) {
+    public FIDOCredential(String username, byte[] userId, String rpId, byte[] rpIdHash, byte[] credentialID, COSEPublicKey publicKey, Map<String, Object> options) {
         this.username = username;
         this.userId = userId.clone();
 

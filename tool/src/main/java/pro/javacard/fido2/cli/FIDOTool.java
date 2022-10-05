@@ -20,16 +20,19 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
+import java.security.PublicKey;
 import java.security.interfaces.ECPublicKey;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static pro.javacard.fido2.common.CTAP2ProtocolHelpers.*;
+
 import static pro.javacard.fido2.common.PINProtocols.*;
 
 public final class FIDOTool extends CommandLineInterface {
     static final long TIMEOUT = 15;
-    static final CallbackHandler handler = new CLICallbacks();
+
+    static CallbackHandler handler; // We initialize this after logging options
 
     static void setupLogging(OptionSet args) {
         // Set up slf4j simple in a way that pleases us
@@ -88,6 +91,9 @@ public final class FIDOTool extends CommandLineInterface {
             options = parseArguments(args);
             setupLogging(options);
 
+            handler = new CLICallbacks(); // contains logger
+
+
             if (options.has(OPT_VERBOSE) || options.has(OPT_VERSION)) {
                 System.out.println("# fido utility v" + VERSION);
                 if (options.has(OPT_VERBOSE)) {
@@ -114,7 +120,7 @@ public final class FIDOTool extends CommandLineInterface {
                 exitWith(1);
             }
 
-            KeyPair ephemeral = CryptoUtils.ephemeral();
+            KeyPair ephemeral = P256.ephemeral();
             ECPublicKey deviceKey = null;
             byte[] sharedSecret = null;
             byte[] pinToken = null;
@@ -231,14 +237,16 @@ public final class FIDOTool extends CommandLineInterface {
                 transport = USBTransport.getInstance(chosenOne, handler);
             }
 
+            // Everything below talks to an authenticator
             try {
                 if (options.has(OPT_WINK)) {
                     transport.wink();
                 }
 
+                TransportMetadata metadata = transport.getMetadata();
+
                 //  Both because we want to show remainingDiscoverableCredentials, re-using deviceInfo
                 if (options.has(OPT_GET_INFO) || requiresPIN(options)) {
-                    TransportMetadata metadata = transport.getMetadata();
                     if (options.has(OPT_GET_INFO) && metadata.getTransportVersions().contains(CTAPVersion.U2F_V2)) {
                         //byte[] GET_VERSION = Hex.decode("00030000000000");
                         //byte[] response = transport.transmitCTAP1(GET_VERSION);
@@ -247,22 +255,24 @@ public final class FIDOTool extends CommandLineInterface {
                         String versions = metadata.getTransportVersions().stream().map(Enum::name).collect(Collectors.joining(", "));
                         System.out.printf("%s (v%s, %s)%n", metadata.getDeviceName(), metadata.getDeviceVersion(), versions);
                     }
-                    if (metadata.getTransportVersions().contains(CTAPVersion.FIDO_2_0)) {
-                        byte[] cmd = ctap2command(CTAP2Enums.Command.authenticatorGetInfo, new byte[0]);
-                        deviceInfo = ctap2(cmd, transport);
-                        // But only show it when explicitly asked
-                        if (options.has(OPT_GET_INFO)) {
-                            System.out.println(pretty.writeValueAsString(hexify(deviceInfo)));
-                        }
+
+                }
+                // Always fetch device info
+                if (metadata.getTransportVersions().contains(CTAPVersion.FIDO_2_0)) {
+                    byte[] cmd = ctap2command(CTAP2Enums.Command.authenticatorGetInfo, new byte[0]);
+                    deviceInfo = ctap2(cmd, transport);
+                    // But only show it when explicitly asked
+                    if (options.has(OPT_GET_INFO)) {
+                        System.out.println(pretty(hexify(deviceInfo)));
                     }
                 }
 
                 // get PIN token
-                if (requiresPIN(options) || options.has(OPT_PIN)) {
+                if (!useU2F(transport, options) && (requiresPIN(options) || options.has(OPT_PIN) || (deviceInfo != null && deviceInfo.get("options").get("clientPin").asBoolean(false)))) {
                     // Get key agreement key
                     ObjectNode response = ctap2(ClientPINCommand.getKeyAgreementV1().build(), transport);
 
-                    deviceKey = COSE.extractKeyAgreementKey(response.get("keyAgreement"));
+                    deviceKey = P256.node2pubkey(response.get("keyAgreement"));
                     sharedSecret = shared_secret(deviceKey, ephemeral);
 
                     // get PIN token
@@ -272,22 +282,25 @@ public final class FIDOTool extends CommandLineInterface {
 
                 if (options.has(OPT_CHANGE_PIN)) {
                     ctap2(CTAP2Commands.make_changePIN(options.valueOf(OPT_PIN), options.valueOf(OPT_CHANGE_PIN), deviceKey, ephemeral), transport);
-                }
-
-                // This is FIDO_2_1_PRE feature/implementation
-                if (options.has(OPT_LIST_CREDENTIALS)) {
-                    for (FIDOCredential credential : CTAP2ProtocolHelpers.listCredentials(deviceInfo, transport, pinToken)) {
-                        System.out.printf("%s@%s (%s)%n", credential.getUsername(), credential.getRpId(), Hex.toHexString(credential.getCredentialID()));
+                } else if (options.has(OPT_LIST_CREDENTIALS)) {
+                    List<FIDOCredential> credentials = CTAP2ProtocolHelpers.listCredentials(deviceInfo, transport, pinToken);
+                    OptionalInt maxnamelen = credentials.stream().mapToInt(e -> (e.getUsername() + "@" + e.getRpId()).length()).max();
+                    if (maxnamelen.isPresent()) {
+                        String format1 = String.format("%%-%ds%%s%%n", maxnamelen.getAsInt() + 3);
+                        for (FIDOCredential credential : credentials) {
+                            System.out.printf(format1, credential.toString(), Hex.toHexString(credential.getCredentialID()));
+                            if (options.has(OPT_VERBOSE)) {
+                                System.out.println(padLeft(maxnamelen.getAsInt() + 3, credential.getPublicKey().toString()));
+                            }
+                        }
                     }
-                }
-
-                if (options.has(OPT_DELETE)) {
+                } else if (options.has(OPT_DELETE)) {
                     for (String param : options.valuesOf(OPT_DELETE)) {
                         final byte[] credential;
                         if (param.contains("@")) {
                             String[] elements = param.split("@");
                             if (elements.length != 2)
-                                throw new IllegalArgumentException("Specify user@domain");
+                                throw new IllegalArgumentException("Specify user@   domain");
                             List<FIDOCredential> credentials = CTAP2ProtocolHelpers.listCredentials(deviceInfo, transport, pinToken);
                             credentials = credentials.stream().filter(c -> Objects.equals(c.getRpId(), elements[1]) && c.getUsername().equals(elements[0])).collect(Collectors.toList());
                             if (credentials.size() == 0) {
@@ -306,15 +319,13 @@ public final class FIDOTool extends CommandLineInterface {
                             credential = Hex.decode(param);
                         }
                         CredentialManagementCommand cmd = CredentialManagementCommand.deleteCredential(credential).withPinToken(pinToken);
-                        ctap2(cmd.build(), transport);
+                        CTAP2ProtocolHelpers.ctap2(cmd.build(), transport);
                         System.out.printf("Credential %s deleted%n", Hex.toHexString(credential));
                     }
-                }
-
-                if (options.has(OPT_REGISTER)) {
+                } else if (options.has(OPT_REGISTER)) {
                     MakeCredentialCommand makeCredentialCommand = new MakeCredentialCommand();
 
-                    byte[] clientDataHash = CryptoUtils.random(32);
+                    byte[] clientDataHash = optional(options, OPT_CLIENTDATAHASH).map(Hex::decode).orElse(CryptoUtils.random(32));
                     makeCredentialCommand.withClientDataHash(clientDataHash);
 
 
@@ -328,24 +339,27 @@ public final class FIDOTool extends CommandLineInterface {
                         byte[] uid = optional(options, OPT_UID).map(Hex::decode).orElse(PINProtocols.sha256(components[0].getBytes(StandardCharsets.UTF_8)));
                         makeCredentialCommand.withUserID(uid);
                     }
+                    if (!useU2F(transport, options)) {
+                        if (options.has(OPT_RK))
+                            makeCredentialCommand.withOption("rk");
+                        if (options.has(OPT_NO_UP))
+                            makeCredentialCommand.withOption("up", false);
 
-                    if (options.has(OPT_RK))
-                        makeCredentialCommand.withOption("rk");
-                    if (options.has(OPT_NO_UP))
-                        makeCredentialCommand.withOption("up", false);
+                        if (options.has(OPT_HMAC_SECRET))
+                            makeCredentialCommand.withExtension(new CTAP2Extension.HMACSecret());
 
-                    if (options.has(OPT_HMAC_SECRET))
-                        makeCredentialCommand.withExtension(new CTAP2Extension.HMACSecret());
+                        if (options.has(OPT_PROTECT))
+                            makeCredentialCommand.withExtension(new CTAP2Extension.CredProtect(options.valueOf(OPT_PROTECT).byteValue()));
 
-                    if (options.has(OPT_PROTECT))
-                        makeCredentialCommand.withExtension(new CTAP2Extension.CredProtect(options.valueOf(OPT_PROTECT).byteValue()));
+                        if (options.has(OPT_PIN)) {
+                            makeCredentialCommand.withV1PinAuth(left16(hmac_sha256(pinToken, clientDataHash)));
+                        }
 
-                    if (options.has(OPT_PIN)) {
-                        makeCredentialCommand.withV1PinAuth(left16(hmac_sha256(pinToken, clientDataHash)));
+                        if (options.has(OPT_ED25519))
+                            makeCredentialCommand.withAlgorithm(COSEPublicKey.Ed25519);
+                        else
+                            makeCredentialCommand.withAlgorithm(COSEPublicKey.P256);
                     }
-
-                    // TODO Algorithm is currently fixed to p256
-                    makeCredentialCommand.withAlgorithm(COSE.P256);
 
                     final ObjectNode resp;
 
@@ -355,16 +369,16 @@ public final class FIDOTool extends CommandLineInterface {
                         byte[] u2f = U2FProtocolHelpers.presenceOrTimeout(transport, command, TIMEOUT, new CLICallbacks());
                         u2f = U2FProtocolHelpers.checkSuccess(u2f);
                         byte[] cbor = U2FRegister.toCBOR(makeCredentialCommand, u2f);
-                        resp = cbor2object(CTAP2Enums.Command.authenticatorMakeCredential, cbor);
+                        resp = CTAP2ProtocolHelpers.cbor2object(CTAP2Enums.Command.authenticatorMakeCredential, cbor);
                     } else {
                         // Construct command
                         byte[] cmd = makeCredentialCommand.build();
 
                         // Send to device
-                        resp = ctap2(cmd, transport);
+                        resp = CTAP2ProtocolHelpers.ctap2(cmd, transport);
                     }
 
-                    System.out.println("Registration: \n" + pretty.writeValueAsString(hexify(resp)));
+                    System.out.println("Registration: \n" + pretty(hexify(resp)));
 
                     AuthenticatorData authenticatorData = AuthenticatorData.fromBytes(resp.get("authData").binaryValue());
 
@@ -375,30 +389,34 @@ public final class FIDOTool extends CommandLineInterface {
                     }
                     if (options.has(OPT_PUBKEY)) {
                         Path keypath = Paths.get(options.valueOf(OPT_PUBKEY));
-                        Files.writeString(keypath, Hex.toHexString(CryptoUtils.pubkey2uncompressed(authenticatorData.getAttestation().getPublicKey())));
+                        Files.writeString(keypath, Hex.toHexString(COSEPublicKey.pubkey2bytes(authenticatorData.getAttestation().getPublicKey())));
                     }
 
-                    System.out.println("Authenticator data: \n" + pretty.writeValueAsString(authenticatorData.toJSON()));
+                    System.out.println("Authenticator data: \n" + pretty(authenticatorData.toJSON()));
                     // TODO: verify attestation
                     AttestationVerifier.dumpAttestation(makeCredentialCommand, resp);
                     // If not U2F
-                    if (authenticatorData.getAttestation().getAAGUID().getMostSignificantBits() != 0L && authenticatorData.getAttestation().getAAGUID().getLeastSignificantBits() != 0) {
+                    if (!isZero(authenticatorData.getAttestation().getAAGUID())) {
                         System.out.println("Used device:   " + authenticatorData.getAttestation().getAAGUID());
                     }
                     System.out.println("Credential ID: " + Hex.toHexString(authenticatorData.getAttestation().getCredentialID()));
-                    System.out.println("Public key:    " + Hex.toHexString(CryptoUtils.pubkey2uncompressed(authenticatorData.getAttestation().getPublicKey())));
+                    System.out.println("Public key:    " + Hex.toHexString(COSEPublicKey.pubkey2bytes(authenticatorData.getAttestation().getPublicKey())));
 
                 } else if (options.has(OPT_AUTHENTICATE)) {
                     GetAssertionCommand getAssertionCommand = new GetAssertionCommand();
+
+                    byte[] clientDataHash = optional(options, OPT_CLIENTDATAHASH).map(Hex::decode).orElse(CryptoUtils.random(32));
+                    getAssertionCommand.withClientDataHash(clientDataHash);
 
                     if (options.has(OPT_HMAC_SECRET)) {
                         if (!options.hasArgument(OPT_HMAC_SECRET)) {
                             throw new IllegalArgumentException("Need hmac secret argument!");
                         }
 
+                        // FIXME: should make it so as to never be null
                         if (deviceKey == null || sharedSecret == null) {
                             ObjectNode cardKeyResponse = ctap2(ClientPINCommand.getKeyAgreementV1().build(), transport);
-                            deviceKey = COSE.extractKeyAgreementKey(cardKeyResponse.get("keyAgreement"));
+                            deviceKey = P256.node2pubkey(cardKeyResponse.get("keyAgreement"));
                             sharedSecret = shared_secret(deviceKey, ephemeral);
                         }
 
@@ -411,9 +429,6 @@ public final class FIDOTool extends CommandLineInterface {
                         CTAP2Extension.HMACSecret hmacSecret = new CTAP2Extension.HMACSecret((ECPublicKey) ephemeral.getPublic(), saltEnc, saltAuth);
                         getAssertionCommand.withExtension(hmacSecret);
                     }
-
-                    byte[] clientDataHash = CryptoUtils.random(32);
-                    getAssertionCommand.withClientDataHash(clientDataHash);
 
                     if (options.hasArgument(OPT_AUTHENTICATE)) {
                         String q = options.valueOf(OPT_AUTHENTICATE);
@@ -463,7 +478,7 @@ public final class FIDOTool extends CommandLineInterface {
                             throw new IOException(String.format("U2F error: 0x%04X", response.getSW()));
                         }
                         byte[] cbor = U2FAuthenticate.toCBOR(getAssertionCommand, u2f);
-                        resp = cbor2object(CTAP2Enums.Command.authenticatorGetAssertion, cbor);
+                        resp = CTAP2ProtocolHelpers.cbor2object(CTAP2Enums.Command.authenticatorGetAssertion, cbor);
                     } else {
                         // Construct command
                         byte[] cmd = getAssertionCommand.build();
@@ -475,11 +490,11 @@ public final class FIDOTool extends CommandLineInterface {
                     byte[] signature = resp.get(CTAP2Enums.GetAssertionResponseParameter.signature.name()).binaryValue();
 
                     AuthenticatorData authenticatorData = AuthenticatorData.fromBytes(authData);
-                    System.out.println("Authenticator data: \n" + pretty.writeValueAsString(authenticatorData.toJSON()));
+                    System.out.println("Authenticator data: \n" + pretty(authenticatorData.toJSON()));
 
                     // Verify assertion, if pubkey given
                     if (options.has(OPT_PUBKEY)) {
-                        final ECPublicKey publicKey = CryptoUtils.uncompressed2pubkey(fileOrHex(options.valueOf(OPT_PUBKEY)));
+                        final PublicKey publicKey = CryptoUtils.bytes2pubkey(fileOrHex(options.valueOf(OPT_PUBKEY)));
                         if (AssertionVerifier.verify(authenticatorData, clientDataHash, signature, publicKey)) {
                             System.out.println("Verified OK.");
                         } else {
@@ -488,34 +503,35 @@ public final class FIDOTool extends CommandLineInterface {
                     }
                 }
 
-                // Management commands are only available via NFC
+                // Management commands are only available via NFC/PCSC
                 if (transport instanceof NFCTransport) {
                     if (options.has(OPT_X_INFO)) {
                         Map<Object, Object> infoCommand = new LinkedHashMap<>();
                         infoCommand.put("cmd", "info");
-                        byte[] command = ctap2command(CTAP2Enums.Command.vendorCBOR, infoCommand);
-                        byte[] response = ctap2raw(command, transport);
+                        byte[] command = CTAP2ProtocolHelpers.ctap2command(CTAP2Enums.Command.vendorCBOR, infoCommand);
+                        byte[] response = CTAP2ProtocolHelpers.ctap2raw(command, transport);
                     } else if (options.has(OPT_X_LIST)) {
                         Map<Object, Object> readList = new LinkedHashMap<>();
                         readList.put("cmd", "read");
                         readList.put("what", options.valueOf(OPT_X_LIST));
                         byte[] command = ctap2command(CTAP2Enums.Command.vendorCBOR, readList);
                         byte[] response = ctap2raw(command, transport);
-                        while (status(response) == CTAP2Enums.Error.CTAP1_ERR_SUCCESS) {
+                        while (CTAP2ProtocolHelpers.status(response) == CTAP2Enums.Error.CTAP1_ERR_SUCCESS) {
                             readList.put("cmd", "next");
                             readList.put("what", options.valueOf(OPT_X_LIST));
-                            command = ctap2command(CTAP2Enums.Command.vendorCBOR, readList);
-                            response = ctap2raw(command, transport);
+                            command = CTAP2ProtocolHelpers.ctap2command(CTAP2Enums.Command.vendorCBOR, readList);
+                            response = CTAP2ProtocolHelpers.ctap2raw(command, transport);
                         }
                     } else if (options.has(OPT_X_READ)) {
                         Map<Object, Object> readList = new LinkedHashMap<>();
                         readList.put("cmd", "read");
                         readList.put("what", options.valueOf(OPT_X_READ));
-                        byte[] command = ctap2command(CTAP2Enums.Command.vendorCBOR, readList);
-                        byte[] response = ctap2raw(command, transport);
+                        byte[] command = CTAP2ProtocolHelpers.ctap2command(CTAP2Enums.Command.vendorCBOR, readList);
+                        byte[] response = CTAP2ProtocolHelpers.ctap2raw(command, transport);
                     }
                 }
             } catch (IOException e) {
+                // FIXME
                 e.printStackTrace();
             } finally {
                 if (transport != null)
@@ -542,5 +558,17 @@ public final class FIDOTool extends CommandLineInterface {
             throw new RuntimeException("Can not log into authenticator: " + e.getMessage(), e);
         }
         return String.valueOf(pc[0].getPassword());
+    }
+
+    static String padLeft(int n, String s) {
+        String pad = "";
+        for (int i = 0; i < n; i++) {
+            pad += " ";
+        }
+        return pad + s;
+    }
+
+    static boolean isZero(UUID uuid) {
+        return uuid.getMostSignificantBits() == 0 && uuid.getLeastSignificantBits() == 0;
     }
 }

@@ -34,7 +34,7 @@ public abstract class CTAP2Extension {
         void serializeGetAssertionCBOR(CBORGenerator generator) throws IOException {
             generator.writeStartObject(3);
             generator.writeFieldId(1);
-            COSE.pubkey2cbor(hostPublic, generator);
+            P256.pubkey2cbor(hostPublic, generator, COSEPublicKey.ECDH_ES_HKDF_256);
             generator.writeFieldId(2);
             generator.writeBinary(saltEnc);
             generator.writeFieldId(3);

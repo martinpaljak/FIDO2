@@ -31,7 +31,7 @@ jobs:
       - name: Setup java
         uses: actions/setup-java@v3.5.0
         with:
-          java-version: 11
+          java-version: 17
           distribution: temurin
       - name: Compile and verify
         run: ./mvnw -U -B -T1C verify

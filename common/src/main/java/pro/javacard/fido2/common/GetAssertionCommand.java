@@ -67,7 +67,6 @@ public class GetAssertionCommand {
         return this;
     }
 
-    @SuppressWarnings("deprecation")
     public byte[] build() {
 
         ByteArrayOutputStream result = new ByteArrayOutputStream();
@@ -91,7 +90,7 @@ public class GetAssertionCommand {
 
             if (allowList.size() > 0) {
                 generator.writeFieldId(CTAP2Enums.GetAssertionCommandParameter.allowList.value());
-                generator.writeStartArray(allowList.size());
+                generator.writeStartArray(null, allowList.size());
                 for (byte[] credential : allowList) {
                     generator.writeStartObject(2);
                     generator.writeFieldName("type");

@@ -14,6 +14,7 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.ECPublicKey;
 
 public class AttestationVerifier {
     private static final Logger logger = LoggerFactory.getLogger(AttestationVerifier.class);
@@ -79,7 +80,7 @@ public class AttestationVerifier {
                 bos.write(authenticatorData.rpIdHash);
                 bos.write(command.clientDataHash);
                 bos.write(authenticatorData.getAttestation().getCredentialID());
-                bos.write(CryptoUtils.pubkey2uncompressed(authenticatorData.getAttestation().getPublicKey()));
+                bos.write(P256.pubkey2uncompressed((ECPublicKey) authenticatorData.getAttestation().getPublicKey()));
                 return bos.toByteArray();
             } else if (registration.get("fmt").asText().equals("packed")) {
                 ByteArrayOutputStream bos = new ByteArrayOutputStream();

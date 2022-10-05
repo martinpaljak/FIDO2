@@ -19,7 +19,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
-import java.security.interfaces.ECPublicKey;
+import java.security.PublicKey;
 import java.util.*;
 import java.util.function.Function;
 
@@ -45,6 +45,10 @@ public class CTAP2ProtocolHelpers {
     }
 
     public static final ObjectWriter pretty = mapper.writerWithDefaultPrettyPrinter();
+
+    public static String pretty(JsonNode node) throws IOException {
+        return pretty.writeValueAsString(node);
+    }
 
     public static final byte[] FIDO_AID = Hex.decode("A0000006472F0001");
 
@@ -253,7 +257,7 @@ public class CTAP2ProtocolHelpers {
                 String userName = response.get(CTAP2Enums.CredentialManagementPreResponseParameter.user.name()).get("name").asText();
                 byte[] userId = response.get(CTAP2Enums.CredentialManagementPreResponseParameter.user.name()).get("id").binaryValue();
                 byte[] credentialID = response.get(CTAP2Enums.CredentialManagementPreResponseParameter.credentialID.name()).get("id").binaryValue();
-                ECPublicKey publicKey = COSE.extractKeyAgreementKey(response.get(CTAP2Enums.CredentialManagementPreResponseParameter.publicKey.name()));
+                COSEPublicKey publicKey = COSEPublicKey.fromParsedNode(response.get(CTAP2Enums.CredentialManagementPreResponseParameter.publicKey.name()));
                 Map<String, Object> options = new HashMap<>();
                 if (response.has(CTAP2Enums.CredentialManagementPreResponseParameter.credProtect.name())) {
                     options.put(CTAP2Enums.CredentialManagementPreResponseParameter.credProtect.name(), response.get(CTAP2Enums.CredentialManagementPreResponseParameter.credProtect.name()).booleanValue());

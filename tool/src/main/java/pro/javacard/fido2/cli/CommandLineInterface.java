@@ -17,29 +17,36 @@ abstract class CommandLineInterface {
 
     // Generic options
     protected static OptionSpec<Void> OPT_VERSION = parser.acceptsAll(Arrays.asList("V", "version"), "Show program version");
+    protected static OptionSpec<Void> OPT_HELP = parser.acceptsAll(Arrays.asList("h", "help"), "Show information about the program").forHelp();
     protected static OptionSpec<Void> OPT_DEBUG = parser.acceptsAll(Arrays.asList("debug"), "Show wire traces");
     protected static OptionSpec<Void> OPT_VERBOSE = parser.acceptsAll(Arrays.asList("v", "verbose"), "Show CBOR messages");
 
-    protected static OptionSpec<Void> OPT_LIST_CREDENTIALS = parser.acceptsAll(Arrays.asList("l", "list-credentials"), "List credentials (pre)");
-    protected static OptionSpec<String> OPT_DELETE = parser.acceptsAll(Arrays.asList("D", "delete"), "Delete credential (pre)").withRequiredArg().describedAs("user@domain|credential");
-
-    protected static OptionSpec<Void> OPT_WINK = parser.acceptsAll(Arrays.asList("W", "wink"), "Wink ;)");
-
-    protected static OptionSpec<Void> OPT_HELP = parser.acceptsAll(Arrays.asList("h", "help"), "Show information about the program").forHelp();
+    // Transport options
+    protected static OptionSpec<String> OPT_USB = parser.acceptsAll(Arrays.asList("U", "usb"), "Use specific USB HID device").withOptionalArg().describedAs("name/path");
     protected static OptionSpec<String> OPT_NFC = parser.acceptsAll(Arrays.asList("N", "nfc"), "Use specific NFC reader").withOptionalArg().describedAs("reader");
-
     protected static OptionSpec<String> OPT_TCP = parser.acceptsAll(Arrays.asList("T", "tcp"), "Use APDU over TCP (test)").withOptionalArg().describedAs("host:port");
 
-    protected static OptionSpec<String> OPT_USB = parser.acceptsAll(Arrays.asList("U", "usb"), "Use specific USB HID device").withOptionalArg().describedAs("device");
-    protected static OptionSpec<String> OPT_CHANGE_PIN = parser.acceptsAll(Arrays.asList("change-pin"), "Set new PIN (FIDO2)").withRequiredArg().describedAs("new PIN");
-    protected static OptionSpec<String> OPT_PIN = parser.acceptsAll(Arrays.asList("p", "pin"), "Use PIN (FIDO2)").withOptionalArg().describedAs("PIN");
-
+    // Universal options
     protected static OptionSpec<Void> OPT_U2F = parser.acceptsAll(Arrays.asList("1", "u2f"), "Force use of U2F");
+
+    // Registration/authentication
+    protected static OptionSpec<Void> OPT_WINK = parser.acceptsAll(Arrays.asList("W", "wink"), "Wink ;)");
+
+    // PIN options
+    protected static OptionSpec<String> OPT_PIN = parser.acceptsAll(Arrays.asList("p", "pin"), "Use PIN (FIDO2)").withOptionalArg().describedAs("PIN");
+    protected static OptionSpec<String> OPT_CHANGE_PIN = parser.acceptsAll(Arrays.asList("change-pin"), "Set new PIN (FIDO2)").withRequiredArg().describedAs("new PIN");
+
+
+    // Credential Management
+    protected static OptionSpec<Void> OPT_LIST_CREDENTIALS = parser.acceptsAll(Arrays.asList("l", "list-credentials"), "List credentials (pre)");
+    protected static OptionSpec<String> OPT_DELETE = parser.acceptsAll(Arrays.asList("D", "delete"), "Delete credential (pre)").withRequiredArg().describedAs("user@domain|credential");
 
     // CTAP2/CTAP2 commands
     protected static OptionSpec<Void> OPT_GET_INFO = parser.acceptsAll(Arrays.asList("i", "info"), "Get info (FIDO2)");
     protected static OptionSpec<String> OPT_REGISTER = parser.acceptsAll(Arrays.asList("r", "register"), "Make credential / register").withRequiredArg().describedAs("[user@]domain");
+    protected static OptionSpec<String> OPT_AUTHENTICATE = parser.acceptsAll(Arrays.asList("a", "authenticate"), "Get assertion / authenticate").withRequiredArg().describedAs("[user@]domain");
 
+    // Arguments for registration/authentication
     protected static OptionSpec<Void> OPT_RK = parser.acceptsAll(Arrays.asList("rk", "discoverable"), "Discoverable (FIDO2)");
     protected static OptionSpec<String> OPT_HMAC_SECRET = parser.acceptsAll(Arrays.asList("hmac-secret"), "Use hmac-secret (FIDO2)").withOptionalArg().describedAs("hex");
     protected static OptionSpec<Integer> OPT_PROTECT = parser.acceptsAll(Arrays.asList("protect"), "Use credProtect (FIDO2)").withRequiredArg().ofType(Integer.class);
@@ -47,11 +54,14 @@ abstract class CommandLineInterface {
 
     protected static OptionSpec<String> OPT_PUBKEY = parser.acceptsAll(Arrays.asList("pubkey"), "Credential public key").withRequiredArg().describedAs("hex/file");
 
-    protected static OptionSpec<String> OPT_AUTHENTICATE = parser.acceptsAll(Arrays.asList("a", "authenticate"), "Get assertion / authenticate").withRequiredArg().describedAs("[user@]domain");
+    protected static OptionSpec<String> OPT_CLIENTDATAHASH = parser.acceptsAll(Arrays.asList("client-data-hash"), "Client data hash").withRequiredArg().describedAs("hex"); // FIXME: hex
 
-    protected static OptionSpec<String> OPT_CREDENTIAL = parser.acceptsAll(Arrays.asList("c", "credential"), "CredentialID").withRequiredArg().describedAs("hex/file"); // FIXME: hex
+    protected static OptionSpec<String> OPT_CREDENTIAL = parser.acceptsAll(Arrays.asList("c", "credential"), "Credential ID").withRequiredArg().describedAs("hex/file"); // FIXME: hex
     protected static OptionSpec<Void> OPT_NO_UP = parser.acceptsAll(Arrays.asList("no-up", "no-presence"), "Do not require UP (touch)");
     protected static OptionSpec<Void> OPT_UV = parser.acceptsAll(Arrays.asList("uv", "verification"), "Do UV (PIN/biometrics)");
+
+    protected static OptionSpec<Void> OPT_P256 = parser.acceptsAll(Arrays.asList("p256"), "Use P-256 keys");
+    protected static OptionSpec<Void> OPT_ED25519 = parser.acceptsAll(Arrays.asList("ed25519"), "Use Ed25519 keys");
 
     // X-FIDO commands
     protected static OptionSpec<String> OPT_X_AUTH = parser.acceptsAll(Arrays.asList("x-auth"), "Use admin secret (X-FIDO)").withRequiredArg().describedAs("secret");

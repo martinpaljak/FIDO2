@@ -78,7 +78,7 @@ public class ClientPINCommand {
                 cborGenerator.writeNumber(subCommand);
                 if (keyAgreementKey != null) {
                     cborGenerator.writeFieldId(CTAP2Enums.ClientPINCommandParameter.keyAgreement.value());
-                    COSE.pubkey2cbor(keyAgreementKey, cborGenerator);
+                    P256.pubkey2cbor(keyAgreementKey, cborGenerator, COSEPublicKey.ECDH_ES_HKDF_256);
                 }
                 if (pinAuth != null) {
                     cborGenerator.writeFieldId(CTAP2Enums.ClientPINCommandParameter.pinAuth.value());
