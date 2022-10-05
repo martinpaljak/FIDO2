@@ -4,10 +4,7 @@ import com.sun.jna.LastErrorException;
 import com.sun.jna.Native;
 import com.sun.jna.Platform;
 import com.sun.jna.win32.StdCallLibrary;
-import joptsimple.OptionException;
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
+import joptsimple.*;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -79,6 +76,7 @@ abstract class CommandLineInterface {
     protected static OptionSet parseArguments(String[] argv) throws IOException {
         OptionSet args = null;
 
+        parser.formatHelpWith(new BuiltinHelpFormatter(100, 3));
         // Parse arguments
         try {
             args = parser.parse(argv);
