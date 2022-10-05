@@ -84,7 +84,7 @@ public class USBTransport implements CTAP2Transport {
 
         if (Platform.isLinux()) {
             // Can't filter by usage page, due to hidapi and hid4java missing feature.
-            devices = getServices().getAttachedHidDevices();
+            devices = getServices().getAttachedHidDevices().stream().filter(device -> device.getProduct() != null).collect(Collectors.toList());
         } else {
             // We can filter devices!
             devices = getServices().getAttachedHidDevices().stream().filter(device -> (device.getUsagePage() & 0xFFFF) == 0xf1d0 && device.getUsage() == 0x01).collect(Collectors.toList());
