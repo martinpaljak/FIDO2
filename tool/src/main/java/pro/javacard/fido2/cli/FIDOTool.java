@@ -561,11 +561,12 @@ public final class FIDOTool extends CommandLineInterface {
     }
 
     static String padLeft(int n, String s) {
-        String pad = "";
-        for (int i = 0; i < n; i++) {
-            pad += " ";
+        StringBuffer buf = new StringBuffer();
+        for (int i = 0; i < n; ++i) {
+            buf.append(" ");
         }
-        return pad + s;
+        buf.append(s);
+        return buf.toString();
     }
 
     static boolean isZero(UUID uuid) {
