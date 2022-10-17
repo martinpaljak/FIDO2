@@ -35,3 +35,23 @@ jobs:
         run: ./mvnw -U -B -T1C verify
       - name: Deploy release
         run: ./mvnw -B deploy
+      - name: Upload JAR
+        id: jar
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./tool/target/fido.jar
+          asset_name: gp.jar
+          asset_content_type: application/zip
+      - name: Upload EXE
+        id: exe
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./tool/target/fido.exe
+          asset_name: gp.exe
+          asset_content_type: application/x-msdownload

@@ -132,7 +132,7 @@ abstract class CommandLineInterface {
     }
 
     static boolean requiresPIN(OptionSet options) {
-        return options.has(OPT_CHANGE_PIN) || options.has(OPT_LIST_CREDENTIALS) ||  options.has(OPT_DELETE) || options.has(OPT_REGISTER);
+        return options.has(OPT_CHANGE_PIN) || options.has(OPT_LIST_CREDENTIALS) ||  options.has(OPT_DELETE) || options.has(OPT_REGISTER) || options.has(OPT_AUTHENTICATE);
     }
 
 

@@ -7,6 +7,7 @@ import joptsimple.OptionSet;
 import org.bouncycastle.util.encoders.Hex;
 import org.hid4java.HidDevice;
 import pro.javacard.fido2.common.*;
+import pro.javacard.fido2.transports.ISO7816Transport;
 import pro.javacard.fido2.transports.NFCTransport;
 import pro.javacard.fido2.transports.TCPTransport;
 import pro.javacard.fido2.transports.USBTransport;
@@ -35,7 +36,7 @@ public final class FIDOTool extends CommandLineInterface {
     static CallbackHandler handler; // We initialize this after logging options
 
     static void setupLogging(OptionSet args) {
-        // Set up slf4j simple in a way that pleases us
+        // Set up slf4j simple in a way that pleases us. NB! No logging before this call
         System.setProperty("org.slf4j.simpleLogger.showThreadName", "false");
         System.setProperty("org.slf4j.simpleLogger.levelInBrackets", "true");
         System.setProperty("org.slf4j.simpleLogger.showShortLogName", "true");
@@ -267,14 +268,27 @@ public final class FIDOTool extends CommandLineInterface {
                     }
                 }
 
+                // Deal with PIN.
+                if (deviceInfo != null && deviceInfo.get("options").has("clientPin") && !useU2F(transport, options)) {
+                    if (options.has(OPT_PIN) || requiresPIN(options)) {
+                        // Get key agreement key
+                        ObjectNode response = ctap2(ClientPINCommand.getKeyAgreementV1().build(), transport);
+                        deviceKey = P256.node2pubkey(response.get("keyAgreement"));
+                        sharedSecret = shared_secret(deviceKey, ephemeral);
+                    }
+                    if (!deviceInfo.get("options").get("clientPin").asBoolean(true)) {
+                        if (options.has(OPT_PIN)) {
+                            ctap2(CTAP2Commands.make_setPIN(getPIN(options), deviceKey, P256.ephemeral()), transport);
+                            System.out.println("PIN code set");
+                            exitWith(0);
+                        } else {
+                            System.err.println("PIN code not set!");
+                        }
+                    }
+                }
+
                 // get PIN token
-                if (!useU2F(transport, options) && (requiresPIN(options) || options.has(OPT_PIN) || (deviceInfo != null && deviceInfo.get("options").get("clientPin").asBoolean(false)))) {
-                    // Get key agreement key
-                    ObjectNode response = ctap2(ClientPINCommand.getKeyAgreementV1().build(), transport);
-
-                    deviceKey = P256.node2pubkey(response.get("keyAgreement"));
-                    sharedSecret = shared_secret(deviceKey, ephemeral);
-
+                if (!useU2F(transport, options) && (requiresPIN(options) || options.has(OPT_PIN)) && (deviceInfo != null && deviceInfo.get("options").get("clientPin").asBoolean(false))) {
                     // get PIN token
                     ObjectNode token = ctap2(CTAP2Commands.make_getPinToken(getPIN(options), deviceKey, ephemeral), transport);
                     pinToken = PINProtocols.aes256_decrypt(sharedSecret, token.get("pinToken").binaryValue());
@@ -474,9 +488,8 @@ public final class FIDOTool extends CommandLineInterface {
                         if (response.getSW() == 0x6A80) {
                             System.err.println("Invalid credentialID!");
                             exitWith(3);
-                        } else if (response.getSW() != 0x9000) {
-                            throw new IOException(String.format("U2F error: 0x%04X", response.getSW()));
                         }
+                        u2f = U2FProtocolHelpers.checkSuccess(u2f);
                         byte[] cbor = U2FAuthenticate.toCBOR(getAssertionCommand, u2f);
                         resp = CTAP2ProtocolHelpers.cbor2object(CTAP2Enums.Command.authenticatorGetAssertion, cbor);
                     } else {
@@ -504,7 +517,7 @@ public final class FIDOTool extends CommandLineInterface {
                 }
 
                 // Management commands are only available via NFC/PCSC
-                if (transport instanceof NFCTransport) {
+                if (transport instanceof ISO7816Transport) {
                     if (options.has(OPT_X_INFO)) {
                         Map<Object, Object> infoCommand = new LinkedHashMap<>();
                         infoCommand.put("cmd", "info");
@@ -530,9 +543,6 @@ public final class FIDOTool extends CommandLineInterface {
                         byte[] response = CTAP2ProtocolHelpers.ctap2raw(command, transport);
                     }
                 }
-            } catch (IOException e) {
-                // FIXME
-                e.printStackTrace();
             } finally {
                 if (transport != null)
                     transport.close();
@@ -553,7 +563,7 @@ public final class FIDOTool extends CommandLineInterface {
 
         PasswordCallback[] pc = {new PasswordCallback("Authenticator PIN", true)};
         try {
-            new CLICallbacks().handle(pc);
+            handler.handle(pc);
         } catch (IOException | UnsupportedCallbackException e) {
             throw new RuntimeException("Can not log into authenticator: " + e.getMessage(), e);
         }

@@ -1,5 +1,6 @@
 package pro.javacard.fido2.common;
 
+import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,6 +14,7 @@ public class AssertionVerifier {
     private static final Logger logger = LoggerFactory.getLogger(AssertionVerifier.class);
 
     public static boolean verify(AuthenticatorData authenticatorData, byte[] clientDataHash, byte[] signature, PublicKey publicKey) {
+        logger.debug("Signature: " + Hex.toHexString(signature));
         try {
             final Signature verifier;
             if (publicKey instanceof EdECPublicKey) {

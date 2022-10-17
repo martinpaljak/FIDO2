@@ -41,7 +41,7 @@ public class AttestationVerifier {
                 byte[] x509 = registration.get("attStmt").get("x5c").get(0).binaryValue();
                 CertificateFactory cf = CertificateFactory.getInstance("X509");
                 X509Certificate cert = (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(x509));
-                System.err.println("Attestation: " + cert.getSubjectX500Principal() + " by " + cert.getIssuerX500Principal());
+                logger.info("Attestation: " + cert.getSubjectX500Principal() + " by " + cert.getIssuerX500Principal());
                 byte[] signature = registration.get("attStmt").get("sig").binaryValue();
                 byte[] dtbs = attestation_dtbs(command, registration);
                 valid(signature, dtbs, cert);
@@ -50,7 +50,7 @@ public class AttestationVerifier {
                     byte[] x509 = registration.get("attStmt").get("x5c").get(0).binaryValue();
                     CertificateFactory cf = CertificateFactory.getInstance("X509");
                     X509Certificate cert = (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(x509));
-                    System.err.println("Attestation: " + cert.getSubjectX500Principal() + " by " + cert.getIssuerX500Principal());
+                    logger.info("Attestation: " + cert.getSubjectX500Principal() + " by " + cert.getIssuerX500Principal());
                     byte[] signature = registration.get("attStmt").get("sig").binaryValue();
                     byte[] dtbs = attestation_dtbs(command, registration);
                     valid(signature, dtbs, cert);
@@ -63,11 +63,8 @@ public class AttestationVerifier {
                 }
             }
         } catch (IOException | GeneralSecurityException e) {
-            e.printStackTrace();
+            logger.error("Failed to parse/verify attestation: " + e.getMessage(), e);
         }
-
-        // Verify.
-
     }
 
 
