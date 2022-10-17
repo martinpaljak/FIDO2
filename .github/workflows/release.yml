@@ -35,6 +35,16 @@ jobs:
         run: ./mvnw -U -B -T1C verify
       - name: Deploy release
         run: ./mvnw -B deploy
+      - name: Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: true # Manually promoted to latest release
       - name: Upload JAR
         id: jar
         uses: actions/upload-release-asset@v1
