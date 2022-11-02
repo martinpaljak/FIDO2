@@ -1,9 +1,16 @@
 package pro.javacard.fido2.cli;
 
 import apdu4j.core.ResponseAPDU;
+import com.fasterxml.jackson.core.json.JsonReadFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.sun.jna.Platform;
 import joptsimple.OptionSet;
+import org.bouncycastle.util.encoders.DecoderException;
 import org.bouncycastle.util.encoders.Hex;
 import org.hid4java.HidDevice;
 import pro.javacard.fido2.common.*;
@@ -76,18 +83,35 @@ public final class FIDOTool extends CommandLineInterface {
         });
     }
 
-    static byte[] fileOrHex(String pathOrHex) throws IOException {
+    static byte[] fileOrHex(String pathOrHex) {
         Path path = Paths.get(pathOrHex);
+        final String data;
         if (Files.exists(path)) {
-            String data = Files.readAllLines(path).get(0).trim();
-            return Hex.decode(data);
+            try {
+                data = Files.readAllLines(path).get(0).trim();
+                return Hex.decode(data);
+            } catch (IOException e) {
+                throw new IllegalArgumentException("Could not read file: " + e.getMessage(), e);
+            }
         } else {
-            return Hex.decode(pathOrHex);
+            data = pathOrHex;
+        }
+        try {
+            return Hex.decode(data);
+        } catch (DecoderException e) {
+            return Base64.getUrlDecoder().decode(data);
         }
     }
 
-
     public static void main(String[] args) {
+        // Try to be "helpful"
+        if ((System.getProperty("os.name").equals("Mac OS X") && System.getProperty("os.arch").equals("aarch64")) || System.getProperty("os.name").equals("Linux")) {
+            System.err.println("# WARNING: USB HID device support is broken on this platform.");
+            System.err.println("# See https://github.com/martinpaljak/FIDO2/issues/8 for more info");
+            if (System.getProperty("os.name").equals("Mac OS X")) {
+                System.err.println("# Workaround: use x86_64 Java");
+            }
+        }
         try {
             options = parseArguments(args);
             setupLogging(options);
@@ -135,14 +159,14 @@ public final class FIDOTool extends CommandLineInterface {
             // NFC requires parameter if more than one reader present
             // If more than one reader, NFC lists readers
 
-            if (options.has(OPT_NFC) && options.has(OPT_USB)) {
-                throw new IllegalArgumentException("Specify only HID device or NFC reader, not both");
+            if (Arrays.stream(new Boolean[]{options.has(OPT_NFC), options.has(OPT_USB), options.has(OPT_TCP)}).filter(Boolean::booleanValue).count() > 1) {
+                throw new IllegalArgumentException("Specify only one of HID device or NFC reader or TCP config");
             }
 
-            Optional<String> readerName = optional(options, OPT_NFC).or(() -> logAndUseEnvironment(handler, "FIDO_NFC_DEVICE"));
-            Optional<String> hidName = optional(options, OPT_USB).or(() -> logAndUseEnvironment(handler, "FIDO_USB_DEVICE"));
+            Optional<String> readerName = options.has(OPT_TCP) ? Optional.empty() : optional(options, OPT_NFC).or(() -> logAndUseEnvironment(handler, "FIDO_NFC_DEVICE"));
+            Optional<String> hidName = options.has(OPT_TCP) ? Optional.empty() : optional(options, OPT_USB).or(() -> logAndUseEnvironment(handler, "FIDO_USB_DEVICE"));
 
-            if (options.has(OPT_NFC)) {
+            if (options.has(OPT_NFC) || readerName.isPresent()) {
                 List<String> readers = NFCTransport.list();
                 final String chosenOne;
                 // -N only - list readers
@@ -157,10 +181,13 @@ public final class FIDOTool extends CommandLineInterface {
                     chosenOne = readers.get(0);
                 } else if (readers.size() > 0 && readerName.isPresent()) {
                     String q = readerName.get().toLowerCase(Locale.ROOT);
-                    // Many readers present - need to specify one FIXME: exact match wins over partial!
-                    List<String> filtered = readers.stream().filter(r -> q.length() > 2 && r.toLowerCase().contains(q)).collect(Collectors.toList());
+                    List<String> filtered = readers.stream().filter(r -> r.equalsIgnoreCase(q)).collect(Collectors.toList());
+                    System.out.println("Filtered: " + filtered);
+                    if (filtered.size() != 1) // No uniq match, try "search"
+                        filtered = readers.stream().filter(r -> q.length() > 2 && r.toLowerCase().contains(q)).collect(Collectors.toList());
+
                     if (filtered.size() == 0)
-                        throw new IllegalArgumentException("Reader not found: " + readerName.get() + " " + readers);
+                        throw new IllegalArgumentException("Reader not found: " + readerName.get() + " in " + readers);
                     else if (filtered.size() > 1) {
                         throw new IllegalArgumentException("Name not unique: " + readerName.get());
                     }
@@ -240,6 +267,14 @@ public final class FIDOTool extends CommandLineInterface {
 
             // Everything below talks to an authenticator
             try {
+                if (options.has(OPT_SHORT)) {
+                    if (transport instanceof ISO7816Transport) {
+                        ((ISO7816Transport) transport).setExtendedMode(false);
+                    } else {
+                        System.err.printf("Short APDU mode not applicable to %s%n", transport.getClass().getSimpleName());
+                    }
+                }
+
                 if (options.has(OPT_WINK)) {
                     transport.wink();
                 }
@@ -269,7 +304,7 @@ public final class FIDOTool extends CommandLineInterface {
                 }
 
                 // Deal with PIN.
-                if (deviceInfo != null && deviceInfo.get("options").has("clientPin") && !useU2F(transport, options)) {
+                if (deviceInfo != null && deviceInfo.get("options").has("clientPin") && !useU2F(transport, options) && !hasX(options)) {
                     if (options.has(OPT_PIN) || requiresPIN(options)) {
                         // Get key agreement key
                         ObjectNode response = ctap2(ClientPINCommand.getKeyAgreementV1().build(), transport);
@@ -350,7 +385,7 @@ public final class FIDOTool extends CommandLineInterface {
                     makeCredentialCommand.withDomainName(components[1]);
 
                     if (!useU2F(transport, options)) {
-                        byte[] uid = optional(options, OPT_UID).map(Hex::decode).orElse(PINProtocols.sha256(components[0].getBytes(StandardCharsets.UTF_8)));
+                        byte[] uid = optional(options, OPT_UID).map(FIDOTool::fileOrHex).orElse(PINProtocols.sha256(components[0].getBytes(StandardCharsets.UTF_8)));
                         makeCredentialCommand.withUserID(uid);
                     }
                     if (!useU2F(transport, options)) {
@@ -396,7 +431,6 @@ public final class FIDOTool extends CommandLineInterface {
 
                     AuthenticatorData authenticatorData = AuthenticatorData.fromBytes(resp.get("authData").binaryValue());
 
-
                     if (options.has(OPT_CREDENTIAL)) {
                         Path credpath = Paths.get(options.valueOf(OPT_CREDENTIAL));
                         Files.writeString(credpath, Hex.toHexString(authenticatorData.getAttestation().getCredentialID()));
@@ -435,7 +469,7 @@ public final class FIDOTool extends CommandLineInterface {
                         }
 
                         // AES256-CBC(sharedSecret, IV=0, newPin)
-                        byte[] saltEnc = aes256_encrypt(sharedSecret, Hex.decode(options.valueOf(OPT_HMAC_SECRET)));
+                        byte[] saltEnc = aes256_encrypt(sharedSecret, fileOrHex(options.valueOf(OPT_HMAC_SECRET)));
 
                         // LEFT(HMAC-SHA-256(sharedSecret, saltEnc), 16).
                         byte[] saltAuth = left16(hmac_sha256(sharedSecret, saltEnc));
@@ -444,22 +478,20 @@ public final class FIDOTool extends CommandLineInterface {
                         getAssertionCommand.withExtension(hmacSecret);
                     }
 
-                    if (options.hasArgument(OPT_AUTHENTICATE)) {
-                        String q = options.valueOf(OPT_AUTHENTICATE);
-                        if (q.contains("@")) {
-                            // Use domain from name@domain
-                            String[] elements = q.split("@");
-                            if (elements.length != 2) {
-                                throw new IllegalArgumentException("Invalid formation: " + q);
-                            }
-                            getAssertionCommand.withDomain(elements[1]);
-                        } else if (q.contains(".")) {
-                            // Plain domain
-                            getAssertionCommand.withDomain(q);
-                        } else {
-                            throw new IllegalArgumentException("Specify credential to use!");
+
+                    String q = options.valueOf(OPT_AUTHENTICATE);
+                    if (q.contains("@")) {
+                        // Use domain from name@domain
+                        String[] elements = q.split("@");
+                        if (elements.length != 2) {
+                            throw new IllegalArgumentException("Invalid formation: " + q);
                         }
+                        getAssertionCommand.withDomain(elements[1]);
+                    } else if (q.contains(".")) {
+                        // Plain domain
+                        getAssertionCommand.withDomain(q);
                     }
+
 
                     if (options.has(OPT_CREDENTIAL)) {
                         for (String cred : options.valuesOf(OPT_CREDENTIAL)) {
@@ -503,7 +535,7 @@ public final class FIDOTool extends CommandLineInterface {
                     byte[] signature = resp.get(CTAP2Enums.GetAssertionResponseParameter.signature.name()).binaryValue();
 
                     AuthenticatorData authenticatorData = AuthenticatorData.fromBytes(authData);
-                    System.out.println("Authenticator data: \n" + pretty(authenticatorData.toJSON()));
+                    System.out.println("Authenticator data: \n" + pretty(hexify(authenticatorData.toJSON())));
 
                     // Verify assertion, if pubkey given
                     if (options.has(OPT_PUBKEY)) {
@@ -518,29 +550,57 @@ public final class FIDOTool extends CommandLineInterface {
 
                 // Management commands are only available via NFC/PCSC
                 if (transport instanceof ISO7816Transport) {
-                    if (options.has(OPT_X_INFO)) {
-                        Map<Object, Object> infoCommand = new LinkedHashMap<>();
-                        infoCommand.put("cmd", "info");
-                        byte[] command = CTAP2ProtocolHelpers.ctap2command(CTAP2Enums.Command.vendorCBOR, infoCommand);
-                        byte[] response = CTAP2ProtocolHelpers.ctap2raw(command, transport);
-                    } else if (options.has(OPT_X_LIST)) {
-                        Map<Object, Object> readList = new LinkedHashMap<>();
-                        readList.put("cmd", "read");
-                        readList.put("what", options.valueOf(OPT_X_LIST));
-                        byte[] command = ctap2command(CTAP2Enums.Command.vendorCBOR, readList);
-                        byte[] response = ctap2raw(command, transport);
-                        while (CTAP2ProtocolHelpers.status(response) == CTAP2Enums.Error.CTAP1_ERR_SUCCESS) {
-                            readList.put("cmd", "next");
-                            readList.put("what", options.valueOf(OPT_X_LIST));
-                            command = CTAP2ProtocolHelpers.ctap2command(CTAP2Enums.Command.vendorCBOR, readList);
-                            response = CTAP2ProtocolHelpers.ctap2raw(command, transport);
+                    // Get key from authenticator.
+                    //ObjectNode response = ctap2(ClientPINCommand.getKeyAgreementV1().build(), transport);
+                    //deviceKey = P256.node2pubkey(response.get("keyAgreement"));
+                    // Do key derivation
+
+
+                    List<ObjectNode> messages = new ArrayList<>();
+                    if (options.has(OPT_X_GET)) {
+                        for (String s : options.valuesOf(OPT_X_GET))
+                            messages.add(mapper.valueToTree(Map.of("get", XFIDOConfigParser.parsePathOrString(s))));
+                    } else if (options.has(OPT_X_SET)) {
+                        for (String s : options.valuesOf(OPT_X_SET)) {
+                            JsonNode v = XFIDOConfigParser.parsePathOrString(s);
+                            if (!v.isObject())
+                                throw new IllegalArgumentException("Invalid message (not object): " + options.valueOf(OPT_X_SET));
+
+                            if (v.size() > 0) {
+                                Iterator<Map.Entry<String, JsonNode>> fields = v.fields();
+                                while (fields.hasNext()) {
+                                    Map.Entry<String, JsonNode> section = fields.next();
+                                    if (section.getValue().isArray()) {
+                                        for (JsonNode grandchild : section.getValue()) {
+                                            messages.add(mapper.valueToTree(Map.of("set", Map.of(section.getKey(), grandchild))));
+                                        }
+                                    } else if (section.getValue().isObject()) {
+                                        messages.add(mapper.valueToTree(Map.of("set", Map.of(section.getKey(), section.getValue()))));
+                                    } else {
+                                        throw new IllegalArgumentException("Invalid config file, orphan node: " + section.getKey());
+                                    }
+                                }
+                            } else
+                                messages.add(mapper.valueToTree(Map.of("set", v)));
                         }
-                    } else if (options.has(OPT_X_READ)) {
-                        Map<Object, Object> readList = new LinkedHashMap<>();
-                        readList.put("cmd", "read");
-                        readList.put("what", options.valueOf(OPT_X_READ));
-                        byte[] command = CTAP2ProtocolHelpers.ctap2command(CTAP2Enums.Command.vendorCBOR, readList);
-                        byte[] response = CTAP2ProtocolHelpers.ctap2raw(command, transport);
+                    } else if (options.has(OPT_X_DEL)) {
+                        for (String s : options.valuesOf(OPT_X_DEL)) {
+                            JsonNode v = XFIDOConfigParser.parsePathOrString(s);
+                            if (!v.isObject())
+                                throw new IllegalArgumentException("Invalid message (not object): " + options.valueOf(OPT_X_DEL));
+                            messages.add(mapper.valueToTree(Map.of("del", v)));
+                        }
+                    } else {
+                        return;
+                    }
+
+                    // Send all messages
+                    for (ObjectNode mesg : messages) {
+                        ObjectNode resp = vendor_cbor(mesg, transport);
+                        // Automatically issue "get next" commands
+                        while (resp.has("next") && !resp.has("error")) {
+                            resp = vendor_cbor(mapper.valueToTree(Map.of("get", "next")), transport);
+                        }
                     }
                 }
             } finally {
@@ -549,12 +609,22 @@ public final class FIDOTool extends CommandLineInterface {
             }
         } catch (Throwable e) {
             System.err.printf("%s: %s%n", e.getClass().getSimpleName(), e.getMessage());
-            if (System.getenv().containsKey("CTAP2_TRACE")) {
+            if (Boolean.parseBoolean(System.getenv().getOrDefault("FIDO_TRACE", "false"))) {
                 e.printStackTrace(System.err);
             }
             exitWith(2);
         }
         exitWith(0);
+    }
+
+
+    static ObjectNode vendor_cbor(ObjectNode msg, CTAP2Transport transport) throws IOException {
+        System.out.println("CBOR >>>\n" + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(hexify(msg)));
+        byte[] payload = cborMapper.writeValueAsBytes(msg);
+
+        ObjectNode resp = ctap2(ctap2command(CTAP2Enums.Command.vendorCBOR, payload), transport);
+        System.out.println("CBOR <<<\n" + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(hexify(resp)));
+        return resp;
     }
 
     static String getPIN(OptionSet options) {

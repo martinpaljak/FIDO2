@@ -21,6 +21,8 @@ abstract class CommandLineInterface {
     protected static OptionSpec<Void> OPT_DEBUG = parser.acceptsAll(Arrays.asList("debug"), "Show wire traces");
     protected static OptionSpec<Void> OPT_VERBOSE = parser.acceptsAll(Arrays.asList("v", "verbose"), "Show CBOR messages");
 
+    protected static OptionSpec<Void> OPT_SHORT = parser.acceptsAll(Arrays.asList("S"), "Use short APDU mode");
+
     // Transport options
     protected static OptionSpec<String> OPT_USB = parser.acceptsAll(Arrays.asList("U", "usb"), "Use specific USB HID device").withOptionalArg().describedAs("name/path");
     protected static OptionSpec<String> OPT_NFC = parser.acceptsAll(Arrays.asList("N", "nfc"), "Use specific NFC reader").withOptionalArg().describedAs("reader");
@@ -50,13 +52,13 @@ abstract class CommandLineInterface {
     protected static OptionSpec<Void> OPT_RK = parser.acceptsAll(Arrays.asList("rk", "discoverable"), "Discoverable (FIDO2)");
     protected static OptionSpec<String> OPT_HMAC_SECRET = parser.acceptsAll(Arrays.asList("hmac-secret"), "Use hmac-secret (FIDO2)").withOptionalArg().describedAs("hex");
     protected static OptionSpec<Integer> OPT_PROTECT = parser.acceptsAll(Arrays.asList("protect"), "Use credProtect (FIDO2)").withRequiredArg().ofType(Integer.class);
-    protected static OptionSpec<String> OPT_UID = parser.accepts("uid", "User identifier").withRequiredArg().describedAs("uid (hex)"); // FIXME: hex
+    protected static OptionSpec<String> OPT_UID = parser.accepts("uid", "User identifier").withRequiredArg().describedAs("value/file");
 
-    protected static OptionSpec<String> OPT_PUBKEY = parser.acceptsAll(Arrays.asList("pubkey"), "Credential public key").withRequiredArg().describedAs("hex/file");
+    protected static OptionSpec<String> OPT_PUBKEY = parser.acceptsAll(Arrays.asList("pubkey"), "Credential public key").withRequiredArg().describedAs("value/file");
 
-    protected static OptionSpec<String> OPT_CLIENTDATAHASH = parser.acceptsAll(Arrays.asList("client-data-hash"), "Client data hash").withRequiredArg().describedAs("hex"); // FIXME: hex
+    protected static OptionSpec<String> OPT_CLIENTDATAHASH = parser.acceptsAll(Arrays.asList("client-data-hash"), "Client data hash").withRequiredArg().describedAs("hex/b64url");
 
-    protected static OptionSpec<String> OPT_CREDENTIAL = parser.acceptsAll(Arrays.asList("c", "credential"), "Credential ID").withRequiredArg().describedAs("hex/file"); // FIXME: hex
+    protected static OptionSpec<String> OPT_CREDENTIAL = parser.acceptsAll(Arrays.asList("c", "credential"), "Credential ID").withRequiredArg().describedAs("hex/b64url/file");
     protected static OptionSpec<Void> OPT_NO_UP = parser.acceptsAll(Arrays.asList("no-up", "no-presence"), "Do not require UP (touch)");
     protected static OptionSpec<Void> OPT_UV = parser.acceptsAll(Arrays.asList("uv", "verification"), "Do UV (PIN/biometrics)");
 
@@ -64,14 +66,15 @@ abstract class CommandLineInterface {
     protected static OptionSpec<Void> OPT_ED25519 = parser.acceptsAll(Arrays.asList("ed25519"), "Use Ed25519 keys");
 
     // X-FIDO commands
-    protected static OptionSpec<String> OPT_X_AUTH = parser.acceptsAll(Arrays.asList("x-auth"), "Use admin secret (X-FIDO)").withRequiredArg().describedAs("secret");
-    protected static OptionSpec<Void> OPT_X_INFO = parser.acceptsAll(Arrays.asList("x-info"), "Show token info (X-FIDO)");
+    protected static OptionSpec<String> OPT_X_AUTH_GP_KEY = parser.acceptsAll(Arrays.asList("x-auth-gp-key"), "Use GP key").withRequiredArg().describedAs("hex/file");
 
-    protected static OptionSpec<String> OPT_X_CREATE = parser.acceptsAll(Arrays.asList("x-create"), "Create something (X-FIDO)").withRequiredArg().describedAs("type");
-    protected static OptionSpec<String> OPT_X_READ = parser.accepts("x-read", "Read something (X-FIDO)").withRequiredArg().describedAs("type");
-    protected static OptionSpec<String> OPT_X_UPDATE = parser.acceptsAll(Arrays.asList("x-update"), "Update something (X-FIDO)").withRequiredArg().describedAs("type");
-    protected static OptionSpec<String> OPT_X_DELETE = parser.acceptsAll(Arrays.asList("x-delete"), "Delete something (X-FIDO)").withRequiredArg().describedAs("type");
-    protected static OptionSpec<String> OPT_X_LIST = parser.acceptsAll(Arrays.asList("x-list"), "List things (X-FIDO)").withRequiredArg().describedAs("type");
+    protected static OptionSpec<String> OPT_X_AUTH_KEY = parser.acceptsAll(Arrays.asList("x-auth-key"), "Use key").availableUnless(OPT_X_AUTH_GP_KEY).withRequiredArg().describedAs("hex/file");
+
+    protected static OptionSpec<String> OPT_X_AUTH_ORIGIN = parser.acceptsAll(Arrays.asList("x-auth-origin"), "Use origin").availableUnless(OPT_X_AUTH_GP_KEY).withRequiredArg().describedAs("domain");
+
+    protected static OptionSpec<String> OPT_X_GET = parser.acceptsAll(Arrays.asList("get", "x-get", "G"), "Send {get: ...}").withRequiredArg().describedAs("msg");
+    protected static OptionSpec<String> OPT_X_SET = parser.acceptsAll(Arrays.asList("set", "x-set", "S"), "Send {set: ...}").withRequiredArg().describedAs("msg");
+    protected static OptionSpec<String> OPT_X_DEL = parser.acceptsAll(Arrays.asList("del", "x-del", "D"), "Send {del: ...}").withRequiredArg().describedAs("msg");
 
     protected static <V> Optional<V> optional(OptionSet args, OptionSpec<V> v) {
         return args.hasArgument(v) ? Optional.ofNullable(args.valueOf(v)) : Optional.empty();
@@ -133,6 +136,10 @@ abstract class CommandLineInterface {
 
     static boolean requiresPIN(OptionSet options) {
         return options.has(OPT_CHANGE_PIN) || options.has(OPT_LIST_CREDENTIALS) ||  options.has(OPT_DELETE) || options.has(OPT_REGISTER) || options.has(OPT_AUTHENTICATE);
+    }
+
+    static boolean hasX(OptionSet options) {
+        return options.has(OPT_X_GET) || options.has(OPT_X_SET) || options.has(OPT_X_DEL) || options.has(OPT_X_AUTH_KEY) || options.has(OPT_X_AUTH_ORIGIN);
     }
 
 

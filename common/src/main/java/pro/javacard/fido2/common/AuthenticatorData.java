@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.util.encoders.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -13,8 +15,11 @@ import java.util.EnumSet;
 import java.util.stream.Collectors;
 
 public class AuthenticatorData {
+    private static final Logger logger = LoggerFactory.getLogger(AuthenticatorData.class);
+
     public enum Flag {
-        UP(0x01), UV(0x02), AT(0x40), ED(0x80);
+        UP(0x01), UV(0x04), BE(0x08), BS(0x10), AT(0x40), ED(0x80);
+
         final byte mask;
 
         Flag(int mask) {
@@ -59,6 +64,7 @@ public class AuthenticatorData {
     }
 
     public static AuthenticatorData fromBytes(byte[] bytes) throws IOException {
+        logger.warn("Parsing authenticator data: " + Hex.toHexString(bytes));
         ByteBuffer b = ByteBuffer.wrap(bytes);
         byte[] rpIdHash = new byte[32];
         b.get(rpIdHash);
@@ -80,10 +86,10 @@ public class AuthenticatorData {
         if (b.hasRemaining() && flags.contains(Flag.ED)) {
             // Skip AT if present
             if (flags.contains(Flag.AT) && attestationData != null)
-                b.position(b.position() + attestationData.getLength());
+                b.position(b.position() + attestationData.getLength() + 1); // FIXME: length calculations, the whole positioning
             byte[] exts = new byte[b.remaining()];
             b.get(exts);
-            //System.out.println("Extensions data: " + Hex.toHexString(exts));
+            logger.debug("Extensions data: " + Hex.toHexString(exts));
             extensions = (ObjectNode) CTAP2ProtocolHelpers.cborMapper.readTree(exts);
         }
         return new AuthenticatorData(bytes, rpIdHash, flags, counter, attestationData, extensions);
@@ -95,6 +101,10 @@ public class AuthenticatorData {
 
     public long getCounter() {
         return counter;
+    }
+
+    public EnumSet<Flag> getFlags() {
+        return flags.clone();
     }
 
     public AttestationData getAttestation() {
@@ -114,7 +124,7 @@ public class AuthenticatorData {
 
     public ObjectNode toJSON() {
         ObjectNode response = JsonNodeFactory.instance.objectNode();
-        response.put("rpIdHash", Hex.toHexString(rpIdHash));
+        response.set("rpIdHash", JsonNodeFactory.instance.binaryNode(rpIdHash));
         ArrayNode fs = JsonNodeFactory.instance.arrayNode();
         fs.addAll(flags.stream().map(Flag::name).map(TextNode::new).collect(Collectors.toList()));
         response.set("flags", fs);

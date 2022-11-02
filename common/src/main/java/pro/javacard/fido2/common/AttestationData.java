@@ -29,6 +29,7 @@ public class AttestationData {
         this.credentialID = credentialID.clone();
         this.publicKey = publicKey;
         this.length = length;
+        logger.debug("Created attestation: " + this);
     }
 
     static AttestationData fromBytes(byte[] bytes) throws IOException {
@@ -64,6 +65,7 @@ public class AttestationData {
                 "aaguid=" + CryptoUtils.bytes2uuid(aaguid) +
                 ", credentialID=" + Hex.toHexString(credentialID) +
                 ", publicKey=" + Hex.toHexString(COSEPublicKey.pubkey2bytes(publicKey)) +
+                ", length=" + length +
                 '}';
     }
 
@@ -78,7 +80,7 @@ public class AttestationData {
         result.put("aaguid", getAAGUID().toString());
         result.put("credentialID", credentialID);
         ObjectNode pubkey = JsonNodeFactory.instance.objectNode();
-        if(publicKey instanceof EdECPublicKey) {
+        if (publicKey instanceof EdECPublicKey) {
             // "okp" type 1:1 Algo 3: -8 EdDSA, curve -1: 6 Ed25519
             EdECPublicKey ecpub = (EdECPublicKey) publicKey;
             pubkey.put("crv", "Ed25519");

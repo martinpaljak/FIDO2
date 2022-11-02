@@ -5,6 +5,8 @@ import com.fasterxml.jackson.dataformat.cbor.CBORGenerator;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.jce.spec.ECNamedCurveGenParameterSpec;
+import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 import org.bouncycastle.jce.spec.ECNamedCurveSpec;
 import org.bouncycastle.jce.spec.ECParameterSpec;
 
@@ -32,6 +34,11 @@ public class P256 {
         Security.addProvider(new BouncyCastleProvider());
         X9ECParameters curve = org.bouncycastle.asn1.x9.ECNamedCurveTable.getByName("secp256r1");
         secp256r1 = new ECNamedCurveSpec("secp256r1", curve.getCurve(), curve.getG(), curve.getN(), curve.getH());
+    }
+
+    byte[] private2public(byte[] key) {
+        ECNamedCurveParameterSpec crv = ECNamedCurveTable.getParameterSpec("secp256r1");
+        return crv.getG().multiply(new BigInteger(1, key)).getEncoded(false);
     }
 
     public static KeyPair ephemeral() {
@@ -93,7 +100,7 @@ public class P256 {
         return xy2pub(x, y);
     }
 
-    static void pubkey2cbor(ECPublicKey pub, CBORGenerator container, byte type) {
+    static void pubkey2cbor(ECPublicKey pub, CBORGenerator container, int type) {
         try {
             container.writeStartObject(5);
 
@@ -104,13 +111,13 @@ public class P256 {
             container.writeNumber(type);
 
             container.writeFieldId(-1);
-            container.writeNumber(1); // P256
+            container.writeNumber(1); // FIXME P256
 
             container.writeFieldId(-2);
-            container.writeBinary(CryptoUtils.positive(pub.getW().getAffineX().toByteArray()));
+            container.writeBinary(CryptoUtils.leftpad(CryptoUtils.positive(pub.getW().getAffineX().toByteArray()), 32));
 
             container.writeFieldId(-3);
-            container.writeBinary(CryptoUtils.positive(pub.getW().getAffineY().toByteArray()));
+            container.writeBinary(CryptoUtils.leftpad(CryptoUtils.positive(pub.getW().getAffineY().toByteArray()), 32));
 
             container.writeEndObject();
         } catch (IOException e) {

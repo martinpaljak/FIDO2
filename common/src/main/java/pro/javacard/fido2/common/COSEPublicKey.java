@@ -14,10 +14,10 @@ import java.util.Arrays;
 
 // COSE pubkey handling
 public class COSEPublicKey {
-    public static final byte P256 = -7;
-    public static final byte Ed25519 = -8;
+    public static final int P256 = -7;
+    public static final int Ed25519 = -8;
 
-    public static final byte ECDH_ES_HKDF_256 = -25;
+    public static final int ECDH_ES_HKDF_256 = -25;
 
     static final CBORFactory factory = new CBORFactory();
 
