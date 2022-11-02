@@ -26,7 +26,7 @@ public class U2FRegister {
             throw new IllegalArgumentException("uv is not supported");
         if (command.extensions.size() > 0)
             throw new IllegalArgumentException("extensions are not supported");
-        if (command.algorithms.size() != 1 || command.algorithms.get(0) != COSEPublicKey.P256)
+        if (!command.algorithms.contains(COSEPublicKey.P256))
             throw new IllegalArgumentException("U2F supports only P256");
     }
 
@@ -62,7 +62,7 @@ public class U2FRegister {
         ByteArrayOutputStream attestedCredData = new ByteArrayOutputStream();
         attestedCredData.write(new byte[16]); // AAGUID
 
-        attestedCredData.write(0); // XXX key handle length on TWO bytes unlikely
+        attestedCredData.write(0);
         attestedCredData.write(keyhandlelen);
 
         attestedCredData.write(keyhandle);

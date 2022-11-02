@@ -5,4 +5,12 @@
         <Class name="pro.javacard.fido2.common.CTAP2ProtocolHelpers"/>
         <Bug pattern="MS_PKGPROTECT"/>
     </Match>
+    <Match>
+        <Class name="~pro.javacard.fido2.common.WebAuthnPlatform.*"/>
+        <Bug pattern="UUF_UNUSED_FIELD,URF_UNREAD_FIELD"/>
+    </Match>
+    <Match>
+        <Class name="~pro.javacard.fido2.cli.XFIDOConfig.*"/>
+        <Bug pattern="UUF_UNUSED_FIELD,URF_UNREAD_FIELD,UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD,URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
+    </Match>
 </FindBugsFilter>

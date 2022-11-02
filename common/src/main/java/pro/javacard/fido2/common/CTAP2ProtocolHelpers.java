@@ -183,7 +183,7 @@ public class CTAP2ProtocolHelpers {
                         stringifiedCommand = (ObjectNode) hexify(parsedCommand);
                 }
                 ObjectNode cborNode = (ObjectNode) hexify(cborMapper.readTree(cbor));
-                System.out.println(pretty.writeValueAsString(stringifiedCommand));
+                protocolDebug.println(pretty.writeValueAsString(stringifiedCommand));
             }
             byte[] response = transport.transmitCBOR(cmd);
             CTAP2Enums.Error err = valueOf(response[0]).orElseThrow(() -> new CTAPProtocolError("Unknown status " + response[0]));
@@ -212,7 +212,7 @@ public class CTAP2ProtocolHelpers {
                     default:
                         stringifiedResponse = (ObjectNode) hexify(cborRespopnse);
                 }
-                System.out.println(pretty.writeValueAsString(stringifiedResponse));
+                protocolDebug.println(pretty.writeValueAsString(stringifiedResponse));
             }
             return response;
         } catch (IOException e) {

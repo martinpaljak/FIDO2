@@ -50,6 +50,8 @@ public class AttestationCA {
             .addRDN(BCStyle.C, "EE")
             .addRDN(BCStyle.O, "OÜ Küberpunk")
             .addRDN(BCStyle.OU, "Authenticator Attestation") // NB! This is important
+            .addRDN(BCStyle.CN, "X-FIDO")
+
             .build();
 
 
@@ -103,22 +105,5 @@ public class AttestationCA {
         return new JcaX509CertificateConverter().setProvider("BC").getCertificate(certBuilder.build(contentSigner));
     }
 
-    //@Test
-    public void makeKey() {
-        KeyPair keyPair = P256.ephemeral();
 
-        System.out.println(Hex.toHexString(((ECPrivateKey) keyPair.getPrivate()).getS().toByteArray()));
-        System.out.println(Hex.toHexString(((ECPublicKey) keyPair.getPublic()).getW().getAffineX().toByteArray()));
-        System.out.println(Hex.toHexString(((ECPublicKey) keyPair.getPublic()).getW().getAffineY().toByteArray()));
-    }
-
-    //@Test
-    public void makeCert() throws Exception {
-        X509Certificate rootCert = makeRootCertificate();
-        System.out.println(Hex.toHexString(rootCert.getEncoded()));
-
-        KeyPair keyPair = P256.ephemeral();
-        System.out.println("Attestation key: " + Hex.toHexString(((ECPrivateKey) keyPair.getPrivate()).getS().toByteArray()));
-        System.out.println("Attestation cert: " + Hex.toHexString(makeAttestationCertificate((ECPublicKey) keyPair.getPublic(), new byte[16]).getEncoded()));
-    }
 }
