@@ -13,4 +13,8 @@
         <Class name="~pro.javacard.fido2.cli.XFIDOConfig.*"/>
         <Bug pattern="UUF_UNUSED_FIELD,URF_UNREAD_FIELD,UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD,URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
     </Match>
+    <Match>
+        <class name="pro.javacard.fido2.common.AuthenticatorData"/>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
 </FindBugsFilter>

@@ -44,6 +44,7 @@ public class AuthenticatorData {
     final ObjectNode extensions;
 
 
+    // TODO: spotbugs pro.javacard.fido2.common.AuthenticatorData CT_CONSTRUCTOR_THROW
     private AuthenticatorData(byte[] authData, byte[] rpIdHash, EnumSet<Flag> flags, long counter, AttestationData attestation, ObjectNode extensions) {
         this.authData = authData.clone();
         this.rpIdHash = rpIdHash.clone();

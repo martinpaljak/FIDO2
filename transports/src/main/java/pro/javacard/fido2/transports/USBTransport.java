@@ -1,6 +1,5 @@
 package pro.javacard.fido2.transports;
 
-import com.sun.jna.Platform;
 import org.bouncycastle.util.encoders.Hex;
 import org.hid4java.HidDevice;
 import org.hid4java.HidManager;
@@ -79,16 +78,8 @@ public class USBTransport implements CTAP2Transport {
     }
 
     public static List<HidDevice> list() {
-
         List<HidDevice> devices;
-
-        if (Platform.isLinux()) {
-            // Can't filter by usage page, due to hidapi and hid4java missing feature.
-            devices = getServices().getAttachedHidDevices().stream().filter(device -> device.getProduct() != null).collect(Collectors.toList());
-        } else {
-            // We can filter devices!
-            devices = getServices().getAttachedHidDevices().stream().filter(device -> (device.getUsagePage() & 0xFFFF) == 0xf1d0 && device.getUsage() == 0x01).collect(Collectors.toList());
-        }
+        devices = getServices().getAttachedHidDevices().stream().filter(device -> (device.getUsagePage() & 0xFFFF) == 0xf1d0 && device.getUsage() == 0x01).collect(Collectors.toList());
         return devices;
     }
 
