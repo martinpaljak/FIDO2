@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 // WebAuthn cargo cult for testing purposes.
+@SuppressWarnings("rawtypes")
 public class WebAuthnPlatform {
 
     static final ObjectMapper json = new ObjectMapper();
