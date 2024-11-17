@@ -35,7 +35,7 @@ jobs:
         run: ./mvnw -U -B -T1C verify
       - name: Release
         id: create_release
-        uses: softprops/action-gh-release@v0.1.15
+        uses: softprops/action-gh-release@v2.1.0
         with:
           files: |
             tool/target/fido.jar
