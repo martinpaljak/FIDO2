@@ -10,7 +10,7 @@ jobs:
     name: Build, deploy, release
     steps:
       - name: Check out code
-        uses: actions/checkout@v3.1.0
+        uses: actions/checkout@v4.2.2
         with:
           submodules: true
       - name: Set SSH key
