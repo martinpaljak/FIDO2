@@ -41,6 +41,7 @@ public class CTAP2ProtocolHelpers {
     }
 
     static {
+        // FIXME: QUOTE_FIELD_NAMES in com.fasterxml.jackson.core.JsonGenerator.Feature has been deprecated
         mapper.configure(JsonGenerator.Feature.QUOTE_FIELD_NAMES, false); // We have numerics in visual
     }
 

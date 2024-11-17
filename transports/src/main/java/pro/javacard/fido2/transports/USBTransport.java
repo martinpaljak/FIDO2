@@ -103,11 +103,12 @@ public class USBTransport implements CTAP2Transport {
         return new USBTransport(dev, cb);
     }
 
-    @SuppressWarnings("deprecation")
     private USBTransport(HidDevice dev, CallbackHandler cb) {
         device = dev;
         callbackHandler = cb;
-        if (!device.isOpen()) device.open(); //FIXME: isOpen is deprecated
+        if (device.isClosed()) {
+            device.open();
+        }
         try {
             channelID = openChannel(device);
         } catch (IOException e) {
