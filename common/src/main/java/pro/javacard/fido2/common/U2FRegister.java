@@ -30,7 +30,6 @@ public class U2FRegister {
             throw new IllegalArgumentException("U2F supports only P256");
     }
 
-    @SuppressWarnings("deprecation")
     public static byte[] toCBOR(MakeCredentialCommand command, byte[] response) throws IOException {
 
         int offset = 0;
@@ -95,7 +94,7 @@ public class U2FRegister {
         generator.writeFieldName("sig");
         generator.writeBinary(signature);
         generator.writeFieldName("x5c");
-        generator.writeStartArray(1);
+        generator.writeStartArray(null, 1);
         generator.writeBinary(cert);
         generator.writeEndArray();
         generator.writeEndObject(); // sig+x509 dict

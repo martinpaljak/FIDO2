@@ -51,7 +51,6 @@ public class U2FAuthenticate {
         return u2fcmd;
     }
 
-    @SuppressWarnings("deprecation")
     public static byte[] toCBOR(GetAssertionCommand command, byte[] response) throws IOException {
 
         byte[] appId = PINProtocols.sha256(command.origin.getBytes(StandardCharsets.UTF_8));
