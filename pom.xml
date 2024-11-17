@@ -51,7 +51,7 @@
                 <!-- FIDO depends on Ed25519 keys, thus targeting JDK17+ -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.10.1</version>
+                <version>3.13.0</version>
                 <executions>
                     <execution>
                         <id>default-compile</id>
