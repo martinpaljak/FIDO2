@@ -27,7 +27,7 @@ import static pro.javacard.fido2.common.CTAP2Enums.Error.CTAP1_ERR_SUCCESS;
 import static pro.javacard.fido2.common.CTAP2Enums.Error.valueOf;
 import static pro.javacard.fido2.common.CryptoUtils.concatenate;
 
-@SuppressWarnings("deprecation")
+@SuppressWarnings({"deprecation", "rawtypes"})
 public class CTAP2ProtocolHelpers {
     private static final Logger logger = LoggerFactory.getLogger(CTAP2ProtocolHelpers.class);
 
