@@ -25,9 +25,11 @@ public class COSEPublicKey {
         factory.setCodec(CTAP2ProtocolHelpers.cborMapper);
     }
 
+    @SuppressWarnings("deprecation")
     static COSEPublicKey fromBytes(byte[] cbor) throws IOException {
         CBORParser parser = factory.createParser(cbor);
         ObjectNode parsed = parser.readValueAsTree();
+        // FIXME: getCurrentLocation() is deprecated
         byte[] encoded = Arrays.copyOf(cbor, (int) parser.getCurrentLocation().getByteOffset() - 1);
 
         final PublicKey pubkey;

@@ -104,14 +104,6 @@ public final class FIDOTool extends CommandLineInterface {
     }
 
     public static void main(String[] args) {
-        // Try to be "helpful"
-        if ((System.getProperty("os.name").equals("Mac OS X") && System.getProperty("os.arch").equals("aarch64")) || System.getProperty("os.name").equals("Linux")) {
-            System.err.println("# WARNING: USB HID device support is broken on this platform.");
-            System.err.println("# See https://github.com/martinpaljak/FIDO2/issues/8 for more info");
-            if (System.getProperty("os.name").equals("Mac OS X")) {
-                System.err.println("# Workaround: use x86_64 Java");
-            }
-        }
         try {
             options = parseArguments(args);
             setupLogging(options);
@@ -209,19 +201,15 @@ public final class FIDOTool extends CommandLineInterface {
                     // List HID devices
                     System.out.println("USB HID devices:");
                     for (HidDevice device : devices) {
-                        if (Platform.isLinux()) {
-                            System.out.printf("- %s (by %s): %s%n", device.getProduct(), device.getManufacturer(), device.getPath());
-                        } else {
-                            // List is filtered for valid devices, we can probe for more information
-                            USBTransport probe = USBTransport.getInstance(device, handler);
-                            String transports = probe.getMetadata().getTransportVersions().stream().map(Enum::toString).collect(Collectors.joining(", "));
-                            System.out.printf("- %s (v%s by %s, supporting %s)%n", device.getProduct(), probe.getMetadata().getDeviceVersion(), device.getManufacturer(), transports);
-                        }
+                        // List is filtered for valid devices, we can probe for more information
+                        USBTransport probe = USBTransport.getInstance(device, handler);
+                        String transports = probe.getMetadata().getTransportVersions().stream().map(Enum::toString).collect(Collectors.joining(", "));
+                        System.out.printf("- %s%s (v%s by %s, supporting %s)%n", Platform.isLinux() ? device.getPath() + " " : "", device.getProduct(), probe.getMetadata().getDeviceVersion(), device.getManufacturer(), transports);
                     }
                     chosenOne = null; // compiler sugar
                     exitWith(0);
-                } else if (!Platform.isLinux() && devices.size() == 1 && hidName.isEmpty()) {
-                    // DWIM: Not Linux and just one device in device list - use it
+                } else if (devices.size() == 1 && hidName.isEmpty()) {
+                    // DWIM: Just one device in device list - use it
                     chosenOne = devices.get(0);
                 } else if (hidName.isPresent()) {
                     String parameter = hidName.get();
@@ -254,10 +242,7 @@ public final class FIDOTool extends CommandLineInterface {
                     } else
                         throw new IllegalArgumentException("Device identifier not unique: " + parameter);
                 } else {
-                    if (Platform.isLinux())
-                        throw new IllegalArgumentException("Need a USB device path! Use " + OPT_USB);
-                    else
-                        throw new IllegalArgumentException("Need a USB device name! Use " + OPT_USB);
+                    throw new IllegalArgumentException(String.format("Need a USB device %s! Use %s", Platform.isLinux() ? "path" : "name", OPT_USB));
                 }
                 if (options.has(OPT_VERBOSE) && chosenOne != null) {
                     System.out.printf("# Using device: %s%n", chosenOne.getProduct());
