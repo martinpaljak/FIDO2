@@ -49,6 +49,7 @@ abstract class CommandLineInterface {
     protected static OptionSpec<String> OPT_AUTHENTICATE = parser.acceptsAll(Arrays.asList("a", "authenticate"), "Get assertion / authenticate").withRequiredArg().describedAs("[user@]domain");
 
     // Arguments for registration/authentication
+    protected static OptionSpec<Integer> OPT_EA = parser.acceptsAll(Arrays.asList("ea"),  "Enterprise Attestation (FIDO2)").withOptionalArg().ofType(Integer.class).defaultsTo(1);
     protected static OptionSpec<Void> OPT_RK = parser.acceptsAll(Arrays.asList("rk", "discoverable"), "Discoverable (FIDO2)");
     protected static OptionSpec<String> OPT_HMAC_SECRET = parser.acceptsAll(Arrays.asList("hmac-secret"), "Use hmac-secret (FIDO2)").withOptionalArg().describedAs("hex");
     protected static OptionSpec<Integer> OPT_PROTECT = parser.acceptsAll(Arrays.asList("protect"), "Use credProtect (FIDO2)").withRequiredArg().ofType(Integer.class);

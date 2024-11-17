@@ -374,6 +374,8 @@ public final class FIDOTool extends CommandLineInterface {
                         makeCredentialCommand.withUserID(uid);
                     }
                     if (!useU2F(transport, options)) {
+                        if (options.has(OPT_EA))
+                            makeCredentialCommand.withEnterpriseAttestation(options.valueOf(OPT_EA));
                         if (options.has(OPT_RK))
                             makeCredentialCommand.withOption("rk");
                         if (options.has(OPT_NO_UP))
