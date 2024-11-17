@@ -14,12 +14,12 @@
         <dependency>
             <groupId>com.github.martinpaljak</groupId>
             <artifactId>apdu4j-core</artifactId>
-            <version>2020r3</version>
+            <version>24.09.26.2</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-cbor</artifactId>
-            <version>2.14.0</version>
+            <version>2.18.1</version>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>

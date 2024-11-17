@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.github.martinpaljak</groupId>
         <artifactId>metacard</artifactId>
-        <version>22.11.15</version>
+        <version>24.09.25</version>
     </parent>
     <packaging>pom</packaging>
     <artifactId>fido2-toolbox</artifactId>
@@ -37,7 +37,7 @@
                         <configuration>
                             <rules>
                                 <requireMavenVersion>
-                                    <version>[3.6.8,)</version>
+                                    <version>[3.9.9,)</version>
                                 </requireMavenVersion>
                                 <requireJavaVersion>
                                     <version>[17,)</version>

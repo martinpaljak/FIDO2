@@ -13,12 +13,12 @@
         <dependency>
             <groupId>com.github.martinpaljak</groupId>
             <artifactId>apdu4j-pcsc</artifactId>
-            <version>22.09.07</version>
+            <version>24.09.26.2</version>
         </dependency>
         <dependency>
             <groupId>org.hid4java</groupId>
             <artifactId>hid4java</artifactId>
-            <version>0.7.0</version>
+            <version>0.8.0</version>
         </dependency>
         <dependency>
             <groupId>com.github.martinpaljak</groupId>
