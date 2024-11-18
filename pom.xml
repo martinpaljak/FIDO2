@@ -63,6 +63,17 @@
                             </compilerArgs>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>base-compile</id>
+                        <configuration>
+                            <!-- compile everything to ensure module-info contains right entries -->
+                            <release>17</release>
+                            <compilerArgs combine.children="append">
+                                <arg>-Werror</arg>
+                                <arg>-Xlint:all</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
 

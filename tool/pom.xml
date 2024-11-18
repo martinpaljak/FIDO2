@@ -29,7 +29,7 @@
         </dependency>
         <dependency>
             <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna-platform</artifactId>
+            <artifactId>jna-platform-jpms</artifactId>
             <version>5.15.0</version>
         </dependency>
         <dependency>
