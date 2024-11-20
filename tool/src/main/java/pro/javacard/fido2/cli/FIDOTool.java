@@ -174,7 +174,6 @@ public final class FIDOTool extends CommandLineInterface {
                 } else if (readers.size() > 0 && readerName.isPresent()) {
                     String q = readerName.get().toLowerCase(Locale.ROOT);
                     List<String> filtered = readers.stream().filter(r -> r.equalsIgnoreCase(q)).collect(Collectors.toList());
-                    System.out.println("Filtered: " + filtered);
                     if (filtered.size() != 1) // No uniq match, try "search"
                         filtered = readers.stream().filter(r -> q.length() > 2 && r.toLowerCase().contains(q)).collect(Collectors.toList());
 
@@ -196,7 +195,7 @@ public final class FIDOTool extends CommandLineInterface {
             } else {
                 List<HidDevice> devices = USBTransport.list();
                 final HidDevice chosenOne;
-                // -H without parameter - list devices
+                // -U without parameter - list devices
                 if (options.has(OPT_USB) && !options.hasArgument(OPT_USB)) {
                     // List HID devices
                     System.out.println("USB HID devices:");
@@ -289,7 +288,7 @@ public final class FIDOTool extends CommandLineInterface {
                 }
 
                 // Deal with PIN.
-                if (deviceInfo != null && deviceInfo.get("options").has("clientPin") && !useU2F(transport, options) && !hasX(options)) {
+                if (deviceInfo != null && deviceInfo.get("options").has("clientPin") && !useU2F(transport, options)) {
                     if (options.has(OPT_PIN) || requiresPIN(options)) {
                         // Get key agreement key
                         ObjectNode response = ctap2(ClientPINCommand.getKeyAgreementV1().build(), transport);
@@ -531,62 +530,6 @@ public final class FIDOTool extends CommandLineInterface {
                             System.out.println("Verified OK.");
                         } else {
                             throw new GeneralSecurityException("Assertion not verified!");
-                        }
-                    }
-                }
-
-                // Management commands are only available via NFC/PCSC
-                if (transport instanceof ISO7816Transport) {
-                    // Get key from authenticator.
-                    //ObjectNode response = ctap2(ClientPINCommand.getKeyAgreementV1().build(), transport);
-                    //deviceKey = P256.node2pubkey(response.get("keyAgreement"));
-                    // Do key derivation
-
-
-                    List<ObjectNode> messages = new ArrayList<>();
-                    if (options.has(OPT_X_GET)) {
-                        for (String s : options.valuesOf(OPT_X_GET))
-                            messages.add(mapper.valueToTree(Map.of("get", XFIDOConfigParser.parsePathOrString(s))));
-                    } else if (options.has(OPT_X_SET)) {
-                        for (String s : options.valuesOf(OPT_X_SET)) {
-                            JsonNode v = XFIDOConfigParser.parsePathOrString(s);
-                            if (!v.isObject())
-                                throw new IllegalArgumentException("Invalid message (not object): " + options.valueOf(OPT_X_SET));
-
-                            if (v.size() > 0) {
-                                Iterator<Map.Entry<String, JsonNode>> fields = v.fields();
-                                while (fields.hasNext()) {
-                                    Map.Entry<String, JsonNode> section = fields.next();
-                                    if (section.getValue().isArray()) {
-                                        for (JsonNode grandchild : section.getValue()) {
-                                            messages.add(mapper.valueToTree(Map.of("set", Map.of(section.getKey(), grandchild))));
-                                        }
-                                    } else if (section.getValue().isObject()) {
-                                        messages.add(mapper.valueToTree(Map.of("set", Map.of(section.getKey(), section.getValue()))));
-                                    } else {
-                                        throw new IllegalArgumentException("Invalid config file, orphan node: " + section.getKey());
-                                    }
-                                }
-                            } else
-                                messages.add(mapper.valueToTree(Map.of("set", v)));
-                        }
-                    } else if (options.has(OPT_X_DEL)) {
-                        for (String s : options.valuesOf(OPT_X_DEL)) {
-                            JsonNode v = XFIDOConfigParser.parsePathOrString(s);
-                            if (!v.isObject())
-                                throw new IllegalArgumentException("Invalid message (not object): " + options.valueOf(OPT_X_DEL));
-                            messages.add(mapper.valueToTree(Map.of("del", v)));
-                        }
-                    } else {
-                        return;
-                    }
-
-                    // Send all messages
-                    for (ObjectNode mesg : messages) {
-                        ObjectNode resp = vendor_cbor(mesg, transport);
-                        // Automatically issue "get next" commands
-                        while (resp.has("next") && !resp.has("error")) {
-                            resp = vendor_cbor(mapper.valueToTree(Map.of("get", "next")), transport);
                         }
                     }
                 }

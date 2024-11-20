@@ -49,7 +49,7 @@ abstract class CommandLineInterface {
     protected static OptionSpec<String> OPT_AUTHENTICATE = parser.acceptsAll(Arrays.asList("a", "authenticate"), "Get assertion / authenticate").withRequiredArg().describedAs("[user@]domain");
 
     // Arguments for registration/authentication
-    protected static OptionSpec<Integer> OPT_EA = parser.acceptsAll(Arrays.asList("ea"),  "Enterprise Attestation (FIDO2)").withOptionalArg().ofType(Integer.class).defaultsTo(1);
+    protected static OptionSpec<Integer> OPT_EA = parser.acceptsAll(Arrays.asList("ea", "enterprise"),  "Enterprise Attestation (FIDO2)").withOptionalArg().ofType(Integer.class).defaultsTo(1);
     protected static OptionSpec<Void> OPT_RK = parser.acceptsAll(Arrays.asList("rk", "discoverable"), "Discoverable (FIDO2)");
     protected static OptionSpec<String> OPT_HMAC_SECRET = parser.acceptsAll(Arrays.asList("hmac-secret"), "Use hmac-secret (FIDO2)").withOptionalArg().describedAs("hex");
     protected static OptionSpec<Integer> OPT_PROTECT = parser.acceptsAll(Arrays.asList("protect"), "Use credProtect (FIDO2)").withRequiredArg().ofType(Integer.class);
@@ -65,17 +65,6 @@ abstract class CommandLineInterface {
 
     protected static OptionSpec<Void> OPT_P256 = parser.acceptsAll(Arrays.asList("p256"), "Use P-256 keys");
     protected static OptionSpec<Void> OPT_ED25519 = parser.acceptsAll(Arrays.asList("ed25519"), "Use Ed25519 keys");
-
-    // X-FIDO commands
-    protected static OptionSpec<String> OPT_X_AUTH_GP_KEY = parser.acceptsAll(Arrays.asList("x-auth-gp-key"), "Use GP key").withRequiredArg().describedAs("hex/file");
-
-    protected static OptionSpec<String> OPT_X_AUTH_KEY = parser.acceptsAll(Arrays.asList("x-auth-key"), "Use key").availableUnless(OPT_X_AUTH_GP_KEY).withRequiredArg().describedAs("hex/file");
-
-    protected static OptionSpec<String> OPT_X_AUTH_ORIGIN = parser.acceptsAll(Arrays.asList("x-auth-origin"), "Use origin").availableUnless(OPT_X_AUTH_GP_KEY).withRequiredArg().describedAs("domain");
-
-    protected static OptionSpec<String> OPT_X_GET = parser.acceptsAll(Arrays.asList("get", "x-get", "G"), "Send {get: ...}").withRequiredArg().describedAs("msg");
-    protected static OptionSpec<String> OPT_X_SET = parser.acceptsAll(Arrays.asList("set", "x-set", "S"), "Send {set: ...}").withRequiredArg().describedAs("msg");
-    protected static OptionSpec<String> OPT_X_DEL = parser.acceptsAll(Arrays.asList("del", "x-del", "D"), "Send {del: ...}").withRequiredArg().describedAs("msg");
 
     protected static <V> Optional<V> optional(OptionSet args, OptionSpec<V> v) {
         return args.hasArgument(v) ? Optional.ofNullable(args.valueOf(v)) : Optional.empty();
@@ -104,7 +93,7 @@ abstract class CommandLineInterface {
 
         if (args.nonOptionArguments().size() > 0) {
             System.err.println();
-            System.err.println("Invalid non-option arguments: " + args.nonOptionArguments().stream().map(e -> e.toString()).collect(Collectors.joining(" ")));
+            System.err.println("Invalid non-option arguments: " + args.nonOptionArguments().stream().map(Object::toString).collect(Collectors.joining(" ")));
             System.err.println("Try " + argv[0] + " --help");
             exitWith(1);
         }
@@ -138,11 +127,6 @@ abstract class CommandLineInterface {
     static boolean requiresPIN(OptionSet options) {
         return options.has(OPT_CHANGE_PIN) || options.has(OPT_LIST_CREDENTIALS) ||  options.has(OPT_DELETE) || options.has(OPT_REGISTER) || options.has(OPT_AUTHENTICATE);
     }
-
-    static boolean hasX(OptionSet options) {
-        return options.has(OPT_X_GET) || options.has(OPT_X_SET) || options.has(OPT_X_DEL) || options.has(OPT_X_AUTH_KEY) || options.has(OPT_X_AUTH_ORIGIN);
-    }
-
 
     // See https://stackoverflow.com/questions/18631597/java-on-windows-test-if-a-java-application-is-run-as-an-elevated-process-with
     interface Shell32 extends StdCallLibrary {
