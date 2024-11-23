@@ -1,4 +1,4 @@
-# FIDO2
+# YAFU - Yet Another FIDO Utility
 FIDO2 Java toolbox: a library and [command line tool](https://github.com/martinpaljak/FIDO2/wiki/FIDO-command-line-utility).
 
 Head to [Wiki](https://github.com/martinpaljak/FIDO2/wiki) for more information!
