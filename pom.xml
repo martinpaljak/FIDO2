@@ -9,7 +9,7 @@
     </parent>
     <packaging>pom</packaging>
     <artifactId>fido2-toolbox</artifactId>
-    <version>24.11.24</version>
+    <version>24.11.25-SNAPSHOT</version>
     <name>FIDO2/U2F/CTAP2 toolbox for Java/JavaCard</name>
     <repositories>
         <repository>

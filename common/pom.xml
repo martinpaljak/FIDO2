@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.github.martinpaljak</groupId>
         <artifactId>fido2-toolbox</artifactId>
-        <version>24.11.24</version>
+        <version>24.11.25-SNAPSHOT</version>
     </parent>
     <artifactId>ctap2-common</artifactId>
     <name>FIDO2/U2F/CTAP2 common</name>
