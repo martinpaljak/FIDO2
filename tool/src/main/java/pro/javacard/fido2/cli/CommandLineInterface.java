@@ -33,6 +33,7 @@ abstract class CommandLineInterface {
 
     // Registration/authentication
     protected static OptionSpec<Void> OPT_WINK = parser.acceptsAll(Arrays.asList("W", "wink"), "Wink ;)");
+    protected static OptionSpec<Void> OPT_RESET = parser.acceptsAll(Arrays.asList("reset"), "Reset authenticator");
 
     // PIN options
     protected static OptionSpec<String> OPT_PIN = parser.acceptsAll(Arrays.asList("p", "pin"), "Use PIN (FIDO2)").withOptionalArg().describedAs("PIN");

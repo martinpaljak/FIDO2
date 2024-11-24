@@ -301,7 +301,8 @@ public final class FIDOTool extends CommandLineInterface {
                             System.out.println("PIN code set");
                             exitWith(0);
                         } else {
-                            System.err.println("PIN code not set!");
+                            System.err.println("PIN code not set! Set it by specifying PIN value or -p");
+                            exitWith(1);
                         }
                     }
                 }
@@ -313,7 +314,14 @@ public final class FIDOTool extends CommandLineInterface {
                     pinToken = PINProtocols.aes256_decrypt(sharedSecret, token.get("pinToken").binaryValue());
                 }
 
-                if (options.has(OPT_CHANGE_PIN)) {
+                if (options.has(OPT_RESET)) {
+                    if (useU2F(transport, options)) {
+                        System.err.println("U2F devices can not be reset");
+                        exitWith(1);
+                    } else {
+                        ctap2(ctap2command(CTAP2Enums.Command.authenticatorReset, new byte[0]), transport);
+                    }
+                } else if (options.has(OPT_CHANGE_PIN)) {
                     ctap2(CTAP2Commands.make_changePIN(options.valueOf(OPT_PIN), options.valueOf(OPT_CHANGE_PIN), deviceKey, ephemeral), transport);
                 } else if (options.has(OPT_LIST_CREDENTIALS)) {
                     List<FIDOCredential> credentials = CTAP2ProtocolHelpers.listCredentials(deviceInfo, transport, pinToken);

@@ -34,7 +34,7 @@ jobs:
           distribution: zulu
           cache: maven
       - name: Compile and verify
-        run: ./mvnw -U -B -T1C verify
+        run: ./mvnw -P exe -U -B -T1C verify
       - name: Deploy snapshot
         if: (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/next' || github.ref == 'refs/heads/main')
         run: ./mvnw -B deploy
@@ -44,7 +44,8 @@ jobs:
         uses: softprops/action-gh-release@v2.1.0
         with:
           files: |
-            tool/target/fido.jar
+            tool/target/yafu.jar
+            tool/target/yafu.exe
           fail_on_unmatched_files: true
           body: Release ${{ github.ref_name }}
           prerelease: true # manually promoted

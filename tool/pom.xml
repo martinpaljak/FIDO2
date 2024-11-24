@@ -7,8 +7,8 @@
         <artifactId>fido2-toolbox</artifactId>
         <version>24.11.23-SNAPSHOT</version>
     </parent>
-    <artifactId>fido-tool</artifactId>
-    <name>FIDO2/CTAP2 tool</name>
+    <artifactId>yafu</artifactId>
+    <name>FIDO2/CTAP2 tool "YAFU"</name>
     <properties>
         <!-- No javadocs for CLI tool -->
         <maven.javadoc.skip>true</maven.javadoc.skip>
@@ -61,13 +61,13 @@
                 <artifactId>maven-shade-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>fido-jar</id>
+                        <id>yafu-jar</id>
                         <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <finalName>fido</finalName>
+                            <finalName>yafu</finalName>
                             <!--minimizeJar>true</minimizeJar-->
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <transformers>
@@ -109,52 +109,65 @@
                     </execution>
                 </executions>
             </plugin>
-            <!-- Package for Windows
-            <plugin>
-                <groupId>com.akathist.maven.plugins.launch4j</groupId>
-                <artifactId>launch4j-maven-plugin</artifactId>
-                <version>2.0.1</version>
-                <executions>
-                    <execution>
-                        <id>fido-exe</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>launch4j</goal>
-                        </goals>
-                        <configuration>
-                            <headerType>console</headerType>
-                            <outfile>target/fido.exe</outfile>
-                            <jar>target/fido.jar</jar>
-                            <errTitle>FIDO</errTitle>
-                            <manifest>src/main/resources/fido.exe.manifest</manifest>
-                            <classPath>
-                                <mainClass>pro.javacard.fido2.cli.FIDOTool</mainClass>
-                            </classPath>
-                            <vars>
-                                <var>FIDO_EXE_WRAPPER=true</var>
-                            </vars>
-                            <jre>
-                                <minVersion>11</minVersion>
-                            </jre>
-                            <versionInfo>
-                                <fileVersion>
-                                    ${windowsVersion.majorVersion}.${windowsVersion.minorVersion}.${windowsVersion.incrementalVersion}.${windowsVersion.buildNumber}
-                                </fileVersion>
-                                <txtFileVersion>${project.version}</txtFileVersion>
-                                <fileDescription>FIDO tool</fileDescription>
-                                <copyright>(C) 2021 - 2022 Martin Paljak and contributors (LGPL+MIT)</copyright>
-                                <productVersion>
-                                    ${windowsVersion.majorVersion}.${windowsVersion.minorVersion}.${windowsVersion.incrementalVersion}.${windowsVersion.buildNumber}
-                                </productVersion>
-                                <txtProductVersion>${project.version}</txtProductVersion>
-                                <productName>FIDO tool</productName>
-                                <internalName>fido</internalName>
-                                <originalFilename>fido.exe</originalFilename>
-                            </versionInfo>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin> -->
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>exe</id>
+            <build>
+                <plugins>
+                    <!-- Call Windows version number mangler -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                    </plugin>
+                    <!-- Package for Windows -->
+                    <plugin>
+                        <groupId>com.akathist.maven.plugins.launch4j</groupId>
+                        <artifactId>launch4j-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>fido-exe</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>launch4j</goal>
+                                </goals>
+                                <configuration>
+                                    <headerType>console</headerType>
+                                    <outfile>target/yafu.exe</outfile>
+                                    <jar>target/yafu.jar</jar>
+                                    <errTitle>YAFU</errTitle>
+                                    <manifest>src/main/resources/yafu.exe.manifest</manifest>
+                                    <classPath>
+                                        <mainClass>pro.javacard.fido2.cli.FIDOTool</mainClass>
+                                    </classPath>
+                                    <vars>
+                                        <var>FIDO_EXE_WRAPPER=true</var>
+                                    </vars>
+                                    <jre>
+                                        <minVersion>17</minVersion>
+                                    </jre>
+                                    <versionInfo>
+                                        <fileVersion>
+                                            ${windowsVersion.majorVersion}.${windowsVersion.minorVersion}.${windowsVersion.incrementalVersion}.${windowsVersion.buildNumber}
+                                        </fileVersion>
+                                        <txtFileVersion>${project.version}</txtFileVersion>
+                                        <fileDescription>YAFU FIDO tool</fileDescription>
+                                        <copyright>(C) 2021 - 2024 Martin Paljak and contributors (LGPL+MIT)</copyright>
+                                        <productVersion>
+                                            ${windowsVersion.majorVersion}.${windowsVersion.minorVersion}.${windowsVersion.incrementalVersion}.${windowsVersion.buildNumber}
+                                        </productVersion>
+                                        <txtProductVersion>${project.version}</txtProductVersion>
+                                        <productName>YAFU</productName>
+                                        <internalName>yafu</internalName>
+                                        <originalFilename>yafu.exe</originalFilename>
+                                    </versionInfo>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
