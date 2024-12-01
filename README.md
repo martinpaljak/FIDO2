@@ -5,7 +5,7 @@
 &nbsp;[![Made in Estonia](https://img.shields.io/badge/Made_in-Estonia-blue)](https://estonia.ee)
 
 
-FIDO2 Java toolbox: a library and [command line tool](https://github.com/martinpaljak/YAFU/wiki/YAFU-command-line-utility).
+FIDO2 Java toolbox: a library and [command line tool](https://github.com/martinpaljak/YAFU/wiki/YAFU-command-line-utility) for working with and debugging [CTAP1/U2F](https://fidoalliance.org/specs/fido-u2f-v1.2-ps-20170411/fido-u2f-raw-message-formats-v1.2-ps-20170411.html) and [CTAP2](https://fidoalliance.org/specs/fido-v2.0-ps-20190130/fido-client-to-authenticator-protocol-v2.0-ps-20190130.html) USB HID and NFC devices.
 
 Head to [Wiki](https://github.com/martinpaljak/YAFU/wiki) for more information!
 
